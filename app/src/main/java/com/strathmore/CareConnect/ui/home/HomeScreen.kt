@@ -1,0 +1,133 @@
+package com.strathmore.CareConnect.ui.home
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    caregiverId: Long,
+    onLogSymptoms: (patientId: Long) -> Unit,
+    onViewHistory: (patientId: Long) -> Unit,
+    onAddPatient: () -> Unit,
+    viewModel: HomeViewModel = viewModel()
+) {
+    val patient by viewModel.patient.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(caregiverId) {
+        viewModel.loadPatient(caregiverId)
+    }
+
+    fun showComingSoon(feature: String) {
+        scope.launch { snackbarHostState.showSnackbar("$feature coming soon") }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = true,
+                    onClick = { /* already home */ },
+                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                    label = { Text("Home") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { patient?.let { onViewHistory(it.patientId) } },
+                    icon = { Icon(Icons.Default.History, contentDescription = "History") },
+                    label = { Text("History") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { showComingSoon("Nurse booking") },
+                    icon = { Icon(Icons.Default.LocalHospital, contentDescription = "Book") },
+                    label = { Text("Book") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { showComingSoon("Alerts") },
+                    icon = { Icon(Icons.Default.Notifications, contentDescription = "Alerts") },
+                    label = { Text("Alerts") }
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { showComingSoon("Profile") },
+                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                    label = { Text("Profile") }
+                )
+            }
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(20.dp)
+        ) {
+            Text(
+                if (patient != null) "Caring for: ${patient!!.name}" else "No patient added yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (patient == null) {
+                Button(
+                    onClick = onAddPatient,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("+ ADD PATIENT")
+                }
+            } else {
+                Button(
+                    onClick = { onLogSymptoms(patient!!.patientId) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("+ LOG SYMPTOMS")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = { showComingSoon("Nurse booking") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("FIND A NURSE")
+                }
+            }  
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("Recent alerts", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        "No alerts yet — the rule engine isn't built yet.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
