@@ -11,7 +11,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.strathmore.CareConnect.ui.auth.LoginScreen
 import com.strathmore.CareConnect.ui.auth.RegisterScreen
+import com.strathmore.CareConnect.ui.home.HomeScreen
 import com.strathmore.CareConnect.ui.patient.AddPatientScreen
+import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
 
@@ -35,7 +37,9 @@ private fun CareConnectNavHost() {
         composable("login") {
             LoginScreen(
                 onLoggedIn = { caregiverId ->
-                    navController.navigate("add_patient/$caregiverId")
+                    navController.navigate("home/$caregiverId") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
                 onNavigateToRegister = {
                     navController.navigate("register")
@@ -46,12 +50,31 @@ private fun CareConnectNavHost() {
         composable("register") {
             RegisterScreen(
                 onRegistered = { caregiverId ->
-                    navController.navigate("add_patient/$caregiverId") {
+                    navController.navigate("home/$caregiverId") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = "home/{caregiverId}",
+            arguments = listOf(navArgument("caregiverId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
+            HomeScreen(
+                caregiverId = caregiverId,
+                onLogSymptoms = { patientId ->
+                    navController.navigate("symptom_log/$caregiverId/$patientId")
+                },
+                onViewHistory = { patientId ->
+                    navController.navigate("symptom_history/$patientId")
+                },
+                onAddPatient = {
+                    navController.navigate("add_patient/$caregiverId")
                 }
             )
         }
@@ -63,22 +86,38 @@ private fun CareConnectNavHost() {
             val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
             AddPatientScreen(
                 caregiverId = caregiverId,
-                onPatientAdded = { patientId ->
-                    navController.navigate("symptom_log/$patientId") {
-                        popUpTo("add_patient/$caregiverId") { inclusive = true }
-                    }
+                onPatientAdded = {
+                    // Home's patient list is a Room Flow, so it updates automatically —
+                    // just pop back rather than navigating forward again.
+                    navController.popBackStack()
                 }
             )
         }
 
         composable(
-            route = "symptom_log/{patientId}",
+            route = "symptom_log/{caregiverId}/{patientId}",
+            arguments = listOf(
+                navArgument("caregiverId") { type = NavType.LongType },
+                navArgument("patientId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            SymptomLogScreen(
+                caregiverId = caregiverId,
+                patientId = patientId,
+                onBackToHome = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "symptom_history/{patientId}",
             arguments = listOf(navArgument("patientId") { type = NavType.LongType })
         ) { backStackEntry ->
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
-            SymptomLogScreen(
-                caregiverId = 0L, // not used by SymptomLogScreen's patient list right now, see note below
-                patientId = patientId
+            SymptomHistoryScreen(
+                patientId = patientId,
+                onBackToHome = { navController.popBackStack() }
             )
         }
     }
