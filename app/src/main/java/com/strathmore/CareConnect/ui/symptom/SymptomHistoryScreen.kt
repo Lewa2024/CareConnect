@@ -166,4 +166,9 @@ private fun SymptomHistoryCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (symptom.notes.isNotBlank()) {
-                Spacer(modifier =
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(symptom.notes, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}

@@ -51,6 +51,10 @@ class AuthRepository(
      suspend fun getCaregiverId(userId: Long): Long? =
         caregiverDao.getByUserId(userId)?.caregiverId
         
+         suspend fun getUserForCaregiver(caregiverId: Long): User? {
+        val caregiver = caregiverDao.getById(caregiverId) ?: return null
+        return userDao.getById(caregiver.userId)
+    }   
         /** Resets the password for the given email. Throws if no account exists with that email. */
     suspend fun resetPassword(email: String, newPassword: String) {
         val user = userDao.getByEmail(email.trim().lowercase())

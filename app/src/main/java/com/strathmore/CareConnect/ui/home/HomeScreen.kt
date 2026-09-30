@@ -22,6 +22,7 @@ fun HomeScreen(
     onViewHistory: (patientId: Long) -> Unit,
     onAddPatient: () -> Unit,
     onEditPatient: (patientId: Long) -> Unit,
+    onProfile: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val patient by viewModel.patient.collectAsState()
@@ -69,7 +70,7 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { showComingSoon("Profile") },
+                    onClick = onProfile,
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                     label = { Text("Profile") }
                 )
