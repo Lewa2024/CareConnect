@@ -121,17 +121,16 @@ private fun CareConnectNavHost() {
                 onBack = { navController.popBackStack() }
             )
         }
-        
+
         composable(
             route = "edit_patient/{patientId}",
             arguments = listOf(navArgument("patientId") { type = NavType.LongType })
         ) { backStackEntry ->
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
-            EditPatientScreen(
+                       EditPatientScreen(
                 patientId = patientId,
-                onPatientUpdated = {
-                    navController.popBackStack()
-                }
+                onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
 
