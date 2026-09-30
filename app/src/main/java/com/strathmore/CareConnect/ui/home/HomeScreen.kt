@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.strathmore.CareConnect.ui.components.AppLogo
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +36,9 @@ fun HomeScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(title = { AppLogo() })
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             NavigationBar {
@@ -78,24 +82,32 @@ fun HomeScreen(
                 .padding(20.dp)
         ) {
             Text(
+                "Good day",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
                 if (patient != null) "Caring for: ${patient!!.name}" else "No patient added yet",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             if (patient == null) {
                 Button(
                     onClick = onAddPatient,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("+ ADD PATIENT")
                 }
             } else {
                 Button(
                     onClick = { onLogSymptoms(patient!!.patientId) },
-                    modifier = Modifier.fillMaxWidth()
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("+ LOG SYMPTOMS")
                 }
@@ -104,27 +116,29 @@ fun HomeScreen(
 
                 OutlinedButton(
                     onClick = { showComingSoon("Nurse booking") },
-                    modifier = Modifier.fillMaxWidth()
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) {
                     Text("FIND A NURSE")
                 }
-            }  
+            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Text("Recent alerts", fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
                     Text(
                         "No alerts yet — the rule engine isn't built yet.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
             }

@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.strathmore.CareConnect.ui.auth.ForgotPasswordScreen
 import com.strathmore.CareConnect.ui.auth.LoginScreen
 import com.strathmore.CareConnect.ui.auth.RegisterScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
@@ -43,6 +44,9 @@ private fun CareConnectNavHost() {
                 },
                 onNavigateToRegister = {
                     navController.navigate("register")
+                },
+                onNavigateToForgotPassword = {
+                    navController.navigate("forgot_password")
                 }
             )
         }
@@ -55,6 +59,17 @@ private fun CareConnectNavHost() {
                     }
                 },
                 onNavigateToLogin = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable("forgot_password") {
+            ForgotPasswordScreen(
+                onResetSuccess = {
+                    navController.popBackStack()
+                },
+                onBackToLogin = {
                     navController.popBackStack()
                 }
             )
@@ -87,8 +102,6 @@ private fun CareConnectNavHost() {
             AddPatientScreen(
                 caregiverId = caregiverId,
                 onPatientAdded = {
-                    // Home's patient list is a Room Flow, so it updates automatically —
-                    // just pop back rather than navigating forward again.
                     navController.popBackStack()
                 }
             )

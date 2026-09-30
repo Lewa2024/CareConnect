@@ -70,7 +70,32 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             _authState.value = AuthState.Success(caregiverId)
         }
     }
+        private val _resetPasswordState = MutableStateFlow<ResetPasswordState>(ResetPasswordState.Idle)
+    val resetPasswordState: StateFlow<ResetPasswordState> = _resetPasswordState.asStateFlow()
 
+    fun resetPassword(email: String, newPassword: String) {
+        if (email.isBlank() || newPassword.isBlank()) {
+            _resetPasswordState.value = ResetPasswordState.Error("Please fill in all fields")
+            return
+        }
+        if (newPassword.length < 6) {
+            _resetPasswordState.value = ResetPasswordState.Error("Password must be at least 6 characters")
+            return
+        }
+        viewModelScope.launch {
+            _resetPasswordState.value = ResetPasswordState.Loading
+            try {
+                repository.resetPassword(email, newPassword)
+                _resetPasswordState.value = ResetPasswordState.Success
+            } catch (e: Exception) {
+                _resetPasswordState.value = ResetPasswordState.Error(e.message ?: "Failed to reset password")
+            }
+        }
+    }
+
+    fun resetPasswordStateReset() {
+        _resetPasswordState.value = ResetPasswordState.Idle
+    }
     fun resetState() {
         _authState.value = AuthState.Idle
     }
@@ -81,4 +106,11 @@ sealed class AuthState {
     data object Loading : AuthState()
     data class Success(val caregiverId: Long) : AuthState()
     data class Error(val message: String) : AuthState()
+}
+
+sealed class ResetPasswordState {
+    data object Idle : ResetPasswordState()
+    data object Loading : ResetPasswordState()
+    data object Success : ResetPasswordState()
+    data class Error(val message: String) : ResetPasswordState()
 }

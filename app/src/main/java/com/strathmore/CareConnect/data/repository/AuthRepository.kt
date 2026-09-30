@@ -50,6 +50,17 @@ class AuthRepository(
     }
      suspend fun getCaregiverId(userId: Long): Long? =
         caregiverDao.getByUserId(userId)?.caregiverId
+        
+        /** Resets the password for the given email. Throws if no account exists with that email. */
+    suspend fun resetPassword(email: String, newPassword: String) {
+        val user = userDao.getByEmail(email.trim().lowercase())
+            ?: throw IllegalStateException("No account found with this email")
+
+        val rowsUpdated = userDao.updatePassword(user.email, hash(newPassword))
+        if (rowsUpdated == 0) {
+            throw IllegalStateException("Failed to update password")
+        }
+    }    
 
     private fun hash(raw: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray())

@@ -29,6 +29,10 @@ class SymptomRepository(
     fun getHistory(patientId: Long): Flow<List<Symptom>> =
         symptomDao.getHistoryForPatient(patientId)
 
+    suspend fun deleteSymptom(symptom: Symptom) {
+        symptomDao.delete(symptom)
+    }
+
     fun getPatientsForCaregiver(caregiverId: Long): Flow<List<Patient>> =
         patientDao.getByCaregiver(caregiverId)
 }

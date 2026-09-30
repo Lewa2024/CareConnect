@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.Flow
 class PatientRepository(
     private val patientDao: PatientDao
 ) {
-    /** Adds a new patient under this caregiver. Returns the new patientId. */
     suspend fun addPatient(
         caregiverId: Long,
         name: String,
@@ -23,6 +22,15 @@ class PatientRepository(
             medication = medication.trim()
         )
         return patientDao.insert(patient)
+    }
+
+    suspend fun getPatient(patientId: Long): Patient? =
+        patientDao.getById(patientId)
+
+    suspend fun updatePatientName(patientId: Long, newName: String) {
+        val existing = patientDao.getById(patientId)
+            ?: throw IllegalStateException("Patient not found")
+        patientDao.update(existing.copy(name = newName.trim()))
     }
 
     fun getPatientsForCaregiver(caregiverId: Long): Flow<List<Patient>> =
