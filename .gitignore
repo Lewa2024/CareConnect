@@ -1,1 +1,20 @@
+# Build outputs
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
+build/
+.gradle/
+
+# Local config
+local.properties
+*.iml
+
+# Android Studio / IntelliJ
+.idea/
+*.hprof
+
+# Java crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# OS files
+.DS_Store

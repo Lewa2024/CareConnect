@@ -7,9 +7,11 @@ val GreenPrimary = Color(0xFF2E7D32)
 val GreenPrimaryLight = Color(0xFF60AD5E)
 val GreenPrimaryDark = Color(0xFF005005)
 
-// Blue — secondary accent (buttons, links, highlights)
+// Blue — now a stronger, more visible accent
 val BluePrimary = Color(0xFF1565C0)
 val BlueLight = Color(0xFF5E92F3)
+val BlueContainer = Color(0xFFD3E4FD)
+val BlueContainerDark = Color(0xFF1E3A5F)
 
 // White / neutrals — backgrounds and surfaces
 val White = Color(0xFFFFFFFF)
