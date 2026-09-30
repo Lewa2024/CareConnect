@@ -13,6 +13,7 @@ import com.strathmore.CareConnect.ui.auth.ForgotPasswordScreen
 import com.strathmore.CareConnect.ui.auth.LoginScreen
 import com.strathmore.CareConnect.ui.auth.RegisterScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
+import com.strathmore.CareConnect.ui.patient.EditPatientScreen
 import com.strathmore.CareConnect.ui.patient.AddPatientScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
@@ -80,7 +81,7 @@ private fun CareConnectNavHost() {
             arguments = listOf(navArgument("caregiverId") { type = NavType.LongType })
         ) { backStackEntry ->
             val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
-            HomeScreen(
+                      HomeScreen(
                 caregiverId = caregiverId,
                 onLogSymptoms = { patientId ->
                     navController.navigate("symptom_log/$caregiverId/$patientId")
@@ -90,6 +91,9 @@ private fun CareConnectNavHost() {
                 },
                 onAddPatient = {
                     navController.navigate("add_patient/$caregiverId")
+                },
+                onEditPatient = { patientId ->
+                    navController.navigate("edit_patient/$patientId")
                 }
             )
         }
@@ -102,6 +106,30 @@ private fun CareConnectNavHost() {
             AddPatientScreen(
                 caregiverId = caregiverId,
                 onPatientAdded = {
+                    navController.popBackStack()
+                }
+            )
+        }
+                composable(
+            route = "edit_patient/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            EditPatientScreen(
+                patientId = patientId,
+                onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = "edit_patient/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            EditPatientScreen(
+                patientId = patientId,
+                onPatientUpdated = {
                     navController.popBackStack()
                 }
             )

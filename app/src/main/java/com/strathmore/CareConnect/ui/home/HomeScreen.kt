@@ -21,6 +21,7 @@ fun HomeScreen(
     onLogSymptoms: (patientId: Long) -> Unit,
     onViewHistory: (patientId: Long) -> Unit,
     onAddPatient: () -> Unit,
+    onEditPatient: (patientId: Long) -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val patient by viewModel.patient.collectAsState()
@@ -87,11 +88,32 @@ fun HomeScreen(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                if (patient != null) "Caring for: ${patient!!.name}" else "No patient added yet",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                       if (patient != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Caring for: ${patient!!.name}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    IconButton(
+                        onClick = { onEditPatient(patient!!.patientId) },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit patient name",
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    "No patient added yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
