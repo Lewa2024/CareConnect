@@ -23,6 +23,9 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
     private val _saveState = MutableStateFlow<PatientSaveState>(PatientSaveState.Idle)
     val saveState: StateFlow<PatientSaveState> = _saveState.asStateFlow()
 
+    private val _viewingPatient = MutableStateFlow<Patient?>(null)
+    val viewingPatient: StateFlow<Patient?> = _viewingPatient.asStateFlow()
+
     private val _editingPatient = MutableStateFlow<Patient?>(null)
     val editingPatient: StateFlow<Patient?> = _editingPatient.asStateFlow()
 
@@ -53,6 +56,12 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun loadPatientDetails(patientId: Long) {
+        viewModelScope.launch {
+            _viewingPatient.value = repository.getPatient(patientId)
+        }
+    }
+
     fun loadPatientForEdit(patientId: Long) {
         viewModelScope.launch {
             _editingPatient.value = repository.getPatient(patientId)
@@ -71,6 +80,28 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
                 _editState.value = EditState.Saved
             } catch (e: Exception) {
                 _editState.value = EditState.Error(e.message ?: "Failed to update name")
+            }
+        }
+    }
+
+    fun updatePatient(
+        patientId: Long,
+        name: String,
+        dateOfBirthMillis: Long,
+        medicalHistory: String,
+        medication: String
+    ) {
+        if (name.isBlank()) {
+            _editState.value = EditState.Error("Name can't be empty")
+            return
+        }
+        viewModelScope.launch {
+            _editState.value = EditState.Saving
+            try {
+                repository.updatePatient(patientId, name, dateOfBirthMillis, medicalHistory, medication)
+                _editState.value = EditState.Saved
+            } catch (e: Exception) {
+                _editState.value = EditState.Error(e.message ?: "Failed to update patient")
             }
         }
     }

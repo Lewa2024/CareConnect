@@ -15,6 +15,7 @@ import com.strathmore.CareConnect.ui.auth.RegisterScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
 import com.strathmore.CareConnect.ui.patient.AddPatientScreen
 import com.strathmore.CareConnect.ui.patient.EditPatientScreen
+import com.strathmore.CareConnect.ui.patient.PatientDetailsScreen
 import com.strathmore.CareConnect.ui.profile.ProfileScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
@@ -96,6 +97,9 @@ private fun CareConnectNavHost() {
                 onEditPatient = { patientId ->
                     navController.navigate("edit_patient/$patientId")
                 },
+                onViewPatientDetails = { patientId ->
+                    navController.navigate("patient_details/$patientId")
+                },
                 onProfile = {
                     navController.navigate("profile/$caregiverId")
                 }
@@ -150,6 +154,18 @@ private fun CareConnectNavHost() {
                 patientId = patientId,
                 onSaved = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "patient_details/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            PatientDetailsScreen(
+                patientId = patientId,
+                onBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate("edit_patient/$id") }
             )
         }
 

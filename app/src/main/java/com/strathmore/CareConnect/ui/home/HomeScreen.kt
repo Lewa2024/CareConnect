@@ -1,5 +1,6 @@
 package com.strathmore.CareConnect.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +23,7 @@ fun HomeScreen(
     onViewHistory: (patientId: Long) -> Unit,
     onAddPatient: () -> Unit,
     onEditPatient: (patientId: Long) -> Unit,
+    onViewPatientDetails: (patientId: Long) -> Unit,
     onProfile: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -89,8 +91,12 @@ fun HomeScreen(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
-                       if (patient != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+
+            if (patient != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onViewPatientDetails(patient!!.patientId) }
+                ) {
                     Text(
                         "Caring for: ${patient!!.name}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -102,7 +108,7 @@ fun HomeScreen(
                     ) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "Edit patient name",
+                            contentDescription = "Edit patient",
                             tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(16.dp)
                         )

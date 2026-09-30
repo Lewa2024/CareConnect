@@ -33,6 +33,25 @@ class PatientRepository(
         patientDao.update(existing.copy(name = newName.trim()))
     }
 
+    suspend fun updatePatient(
+        patientId: Long,
+        name: String,
+        dateOfBirthMillis: Long,
+        medicalHistory: String,
+        medication: String
+    ) {
+        val existing = patientDao.getById(patientId)
+            ?: throw IllegalStateException("Patient not found")
+        patientDao.update(
+            existing.copy(
+                name = name.trim(),
+                dateOfBirth = dateOfBirthMillis,
+                medicalHistory = medicalHistory.trim(),
+                medication = medication.trim()
+            )
+        )
+    }
+
     fun getPatientsForCaregiver(caregiverId: Long): Flow<List<Patient>> =
         patientDao.getByCaregiver(caregiverId)
 }
