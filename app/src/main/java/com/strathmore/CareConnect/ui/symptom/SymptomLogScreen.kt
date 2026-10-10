@@ -20,7 +20,9 @@ fun SymptomLogScreen(
     onBackToHome: () -> Unit,
     viewModel: SymptomViewModel = viewModel()
 ) {
-    var type by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("") }
+    var otherTypeText by remember { mutableStateOf("") }
+    var dropdownExpanded by remember { mutableStateOf(false) }
     var rating by remember { mutableStateOf(5f) }
     var notes by remember { mutableStateOf("") }
 
@@ -29,6 +31,9 @@ fun SymptomLogScreen(
     LaunchedEffect(caregiverId) {
         viewModel.loadPatients(caregiverId)
     }
+
+    // The actual type to save: either the dropdown pick, or whatever was typed for "Other".
+    val effectiveType = if (selectedType == "Other") otherTypeText else selectedType
 
     Scaffold(
         topBar = {
@@ -55,13 +60,45 @@ fun SymptomLogScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            OutlinedTextField(
-                value = type,
-                onValueChange = { type = it },
-                label = { Text("Symptom type (e.g. Fatigue, Nausea, Pain)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            ExposedDropdownMenuBox(
+                expanded = dropdownExpanded,
+                onExpandedChange = { dropdownExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedType,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Symptom type") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = dropdownExpanded,
+                    onDismissRequest = { dropdownExpanded = false }
+                ) {
+                    SYMPTOM_TYPES.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                selectedType = option
+                                dropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (selectedType == "Other") {
+                OutlinedTextField(
+                    value = otherTypeText,
+                    onValueChange = { otherTypeText = it },
+                    label = { Text("Describe the symptom") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -91,7 +128,7 @@ fun SymptomLogScreen(
 
             Button(
                 onClick = {
-                    viewModel.logSymptom(patientId, type, rating.toInt(), notes)
+                    viewModel.logSymptom(patientId, effectiveType, rating.toInt(), notes)
                 },
                 enabled = saveState !is SaveState.Saving,
                 shape = MaterialTheme.shapes.medium,

@@ -18,6 +18,7 @@ import com.strathmore.CareConnect.ui.patient.EditPatientScreen
 import com.strathmore.CareConnect.ui.patient.PatientDetailsScreen
 import com.strathmore.CareConnect.ui.profile.ProfileScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
+import com.strathmore.CareConnect.ui.symptom.EditSymptomScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
 
@@ -190,9 +191,20 @@ private fun CareConnectNavHost() {
             arguments = listOf(navArgument("patientId") { type = NavType.LongType })
         ) { backStackEntry ->
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
-            SymptomHistoryScreen(
+                      SymptomHistoryScreen(
                 patientId = patientId,
                 onBackToHome = { navController.popBackStack() }
+            ) 
+        }
+        composable(
+            route = "edit_symptom/{symptomId}",
+            arguments = listOf(navArgument("symptomId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val symptomId = backStackEntry.arguments?.getLong("symptomId") ?: return@composable
+            EditSymptomScreen(
+                symptomId = symptomId,
+                onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
     }

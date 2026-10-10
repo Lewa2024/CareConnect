@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,7 @@ import java.util.Locale
 fun SymptomHistoryScreen(
     patientId: Long,
     onBackToHome: () -> Unit,
+    onEditSymptom: (symptomId: Long) -> Unit,
     viewModel: SymptomHistoryViewModel = viewModel()
 ) {
     val history by viewModel.history.collectAsState()
@@ -79,6 +81,7 @@ fun SymptomHistoryScreen(
                     items(history, key = { it.symptomId }) { symptom ->
                         SymptomHistoryCard(
                             symptom = symptom,
+                            onEditClick = { onEditSymptom(symptom.symptomId) },
                             onDeleteClick = { symptomPendingDelete = symptom }
                         )
                     }
@@ -114,6 +117,7 @@ fun SymptomHistoryScreen(
 @Composable
 private fun SymptomHistoryCard(
     symptom: Symptom,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy · h:mm a", Locale.US) }
@@ -147,6 +151,14 @@ private fun SymptomHistoryCard(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(onClick = onEditClick, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit entry",
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     IconButton(onClick = onDeleteClick, modifier = Modifier.size(36.dp)) {

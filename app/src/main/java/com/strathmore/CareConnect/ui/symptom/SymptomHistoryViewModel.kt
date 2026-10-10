@@ -23,6 +23,12 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
     private val _history = MutableStateFlow<List<Symptom>>(emptyList())
     val history: StateFlow<List<Symptom>> = _history.asStateFlow()
 
+    private val _editingSymptom = MutableStateFlow<Symptom?>(null)
+    val editingSymptom: StateFlow<Symptom?> = _editingSymptom.asStateFlow()
+
+    private val _editState = MutableStateFlow<SymptomEditState>(SymptomEditState.Idle)
+    val editState: StateFlow<SymptomEditState> = _editState.asStateFlow()
+
     fun loadHistory(patientId: Long) {
         viewModelScope.launch {
             repository.getHistory(patientId).collect { list ->
@@ -30,10 +36,47 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
             }
         }
     }
-        fun deleteSymptom(symptomId: Long) {
+
+    fun deleteSymptom(symptomId: Long) {
         viewModelScope.launch {
             repository.deleteSymptom(symptomId)
         }
-    }    
     }
+
+    fun loadSymptomForEdit(symptomId: Long) {
+        viewModelScope.launch {
+            _editingSymptom.value = repository.getSymptom(symptomId)
+        }
+    }
+
+    fun updateSymptom(symptomId: Long, type: String, rating: Int, notes: String) {
+        if (type.isBlank()) {
+            _editState.value = SymptomEditState.Error("Please select a symptom type")
+            return
+        }
+        if (rating !in 1..10) {
+            _editState.value = SymptomEditState.Error("Severity must be between 1 and 10")
+            return
+        }
+        viewModelScope.launch {
+            _editState.value = SymptomEditState.Saving
+            try {
+                repository.updateSymptom(symptomId, type, rating, notes)
+                _editState.value = SymptomEditState.Saved
+            } catch (e: Exception) {
+                _editState.value = SymptomEditState.Error(e.message ?: "Failed to update symptom")
+            }
+        }
+    }
+
+    fun resetEditState() {
+        _editState.value = SymptomEditState.Idle
+    }
+}
+
+sealed class SymptomEditState {
+    data object Idle : SymptomEditState()
+    data object Saving : SymptomEditState()
+    data object Saved : SymptomEditState()
+    data class Error(val message: String) : SymptomEditState()
 }
