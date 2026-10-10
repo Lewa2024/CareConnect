@@ -91,11 +91,11 @@ fun SymptomHistoryScreen(
         AlertDialog(
             onDismissRequest = { symptomPendingDelete = null },
             title = { Text("Delete this entry?") },
-            text = { Text("This will permanently delete the \"${symptom.type}\" entry. This can't be undone.") },
+            text = { Text("This will remove the \"${symptom.type}\" entry from your history.") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteSymptom(symptom)
+                        viewModel.deleteSymptom(symptom.symptomId)
                         symptomPendingDelete = null
                     }
                 ) {

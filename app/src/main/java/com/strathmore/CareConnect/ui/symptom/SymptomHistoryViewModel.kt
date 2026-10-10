@@ -30,9 +30,10 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
             }
         }
     }
-        fun deleteSymptom(symptom: com.strathmore.CareConnect.data.local.entities.Symptom) {
+        fun deleteSymptom(symptomId: Long) {
         viewModelScope.launch {
-            repository.deleteSymptom(symptom)
+            repository.deleteSymptom(symptomId)
         }
+    }    
     }
 }

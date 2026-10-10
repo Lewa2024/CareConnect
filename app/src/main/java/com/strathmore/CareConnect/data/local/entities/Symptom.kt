@@ -23,5 +23,7 @@ data class Symptom(
     val type: String,     // e.g. "Fatigue", "Nausea", "Pain"
     val rating: Int,      // 1-10 severity scale, drives the rule engine
     val date: Long,       // epoch millis
-    val notes: String
+    val notes: String,
+    val status: String = "ACTIVE",   // ACTIVE or DELETED — soft-delete, row is never actually removed
+    val deletedAt: Long? = null      // epoch millis when marked DELETED, null while ACTIVE
 )
