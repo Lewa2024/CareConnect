@@ -23,6 +23,7 @@ data class User(
     val firstName: String,
     val lastName: String,
     val email: String,
-    val password: String,   // store a hash, never plaintext
+    val password: String,   // salted hash, never plaintext
+    val salt: String,       // unique per user, generated at registration
     val phoneNumber: String
 )

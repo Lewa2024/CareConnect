@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
         Patient::class,
         Symptom::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
