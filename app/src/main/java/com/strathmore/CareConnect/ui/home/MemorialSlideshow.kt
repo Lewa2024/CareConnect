@@ -15,11 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.painter.Painter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.foundation.background
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+
 
 /**
  * A slide in the memorial slideshow: an image resource (a @DrawableRes Int, supplied by the
