@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 
@@ -90,13 +92,14 @@ fun EditSymptomScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
+       Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+        .verticalScroll(rememberScrollState())   // <-- added
+        .padding(24.dp),
+    verticalArrangement = Arrangement.spacedBy(18.dp)
+) {
             Text(
                 "Edit Symptom",
                 style = MaterialTheme.typography.headlineSmall,

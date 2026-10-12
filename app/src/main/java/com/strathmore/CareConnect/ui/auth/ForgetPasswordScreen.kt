@@ -11,6 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 
@@ -47,13 +49,14 @@ fun ForgotPasswordScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+       Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+        .verticalScroll(rememberScrollState())   // <-- added
+        .padding(24.dp),
+    verticalArrangement = Arrangement.spacedBy(18.dp)
+) {
             Text("Reset Password", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Enter your account email and choose a new password.",

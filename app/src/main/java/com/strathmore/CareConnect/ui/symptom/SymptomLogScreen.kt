@@ -12,6 +12,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Info
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
@@ -59,12 +61,13 @@ fun SymptomLogScreen(
         }
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+        .verticalScroll(rememberScrollState())   // <-- added
+        .padding(24.dp),
+    verticalArrangement = Arrangement.spacedBy(18.dp)
+) {
             Text(
                 "Log Symptoms",
                 style = MaterialTheme.typography.headlineSmall,
@@ -179,7 +182,8 @@ fun SymptomLogScreen(
                             OutlinedTextField(
                                 value = systolicText,
                                 onValueChange = { systolicText = it },
-                                label = { Text("BP systolic") },
+                                label = { Text("Blood Pressure:High number") },
+                                supportingText = { Text("Systolic, e.g. 120") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
@@ -187,7 +191,8 @@ fun SymptomLogScreen(
                             OutlinedTextField(
                                 value = diastolicText,
                                 onValueChange = { diastolicText = it },
-                                label = { Text("BP diastolic") },
+                                label = { Text("Blood Pressure:Low number") },
+                                supportingText = { Text("Diastolic, e.g. 80") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)

@@ -7,15 +7,21 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val LightColors = lightColorScheme(
-    primary = GreenPrimary,
+    primary = Navy,
     onPrimary = White,
+    primaryContainer = Ice,
+    onPrimaryContainer = Navy,
     secondary = BluePrimary,
     onSecondary = White,
-    secondaryContainer = BlueContainer,
-    onSecondaryContainer = BluePrimary,
+    secondaryContainer = Ice,
+    onSecondaryContainer = Navy,
     tertiary = BluePrimary,
-    background = OffWhite,
+    background = Mist,
+    onBackground = Navy,
     surface = White,
+    onSurface = Navy,
+    surfaceVariant = SoftSurfaceVariant,
+    onSurfaceVariant = SlateText,
     error = AlertRed
 )
 

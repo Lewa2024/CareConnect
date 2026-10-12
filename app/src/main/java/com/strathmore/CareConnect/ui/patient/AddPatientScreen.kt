@@ -6,6 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 import java.text.SimpleDateFormat
@@ -39,13 +41,14 @@ fun AddPatientScreen(
             TopAppBar(title = { AppLogo() })
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+       Column(
+    modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+        .verticalScroll(rememberScrollState())   // <-- added
+        .padding(24.dp),
+    verticalArrangement = Arrangement.spacedBy(18.dp)
+) {
             Text(
                 "Add Patient",
                 style = MaterialTheme.typography.headlineSmall,
