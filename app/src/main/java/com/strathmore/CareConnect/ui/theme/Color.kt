@@ -3,9 +3,11 @@ package com.strathmore.CareConnect.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Green — primary brand color
+// Green — primary brand color
 val GreenPrimary = Color(0xFF2E7D32)
 val GreenPrimaryLight = Color(0xFF60AD5E)
 val GreenPrimaryDark = Color(0xFF005005)
+val GreenDeep = Color(0xFF1B3A2F)
 
 // Blue — now a stronger, more visible accent
 val BluePrimary = Color(0xFF1565C0)

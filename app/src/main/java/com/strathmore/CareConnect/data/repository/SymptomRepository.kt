@@ -39,6 +39,9 @@ class SymptomRepository(
     fun getHistory(patientId: Long): Flow<List<Symptom>> =
         symptomDao.getHistoryForPatient(patientId)
 
+    suspend fun getLatestEntry(patientId: Long): Symptom? =
+        symptomDao.getMostRecent(patientId)
+
     suspend fun getSymptom(symptomId: Long): Symptom? =
         symptomDao.getById(symptomId)
 

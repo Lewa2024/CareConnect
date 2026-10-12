@@ -195,7 +195,10 @@ private fun CareConnectNavHost() {
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
             SymptomHistoryScreen(
                 patientId = patientId,
-                onBackToHome = { navController.popBackStack() }
+                onBackToHome = { navController.popBackStack() },
+                onEditSymptom = { symptomId ->
+                    navController.navigate("edit_symptom/$symptomId")
+                }
             ) 
         }
         composable(

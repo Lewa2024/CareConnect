@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
+import com.strathmore.CareConnect.R
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 import kotlinx.coroutines.launch
@@ -82,6 +84,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(20.dp)
         ) {
@@ -122,7 +125,18 @@ fun HomeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+                       MemorialSlideshow(
+                slides = listOf(
+                    MemorialSlide(
+                        painter = { painterResource(R.drawable.uncle_photo_1) }
+                    )
+                ),
+                dedicationName = "Josiah Mwatelah"
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (patient == null) {
                 Button(
@@ -152,7 +166,15 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            CancerFactCard()
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            CaregiverTipCard()
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text("Recent alerts", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
@@ -171,6 +193,8 @@ fun HomeScreen(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

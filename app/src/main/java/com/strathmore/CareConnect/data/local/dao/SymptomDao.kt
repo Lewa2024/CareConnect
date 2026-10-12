@@ -28,4 +28,8 @@ interface SymptomDao {
     // Backing query for the rule engine later: symptoms at/above a given severity since a given time
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' AND rating >= :minRating AND date >= :sinceDate")
     suspend fun getSevereSymptoms(patientId: Long, minRating: Int, sinceDate: Long): List<Symptom>
+
+    
+        @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 1")
+    suspend fun getMostRecent(patientId: Long): Symptom?
 }
