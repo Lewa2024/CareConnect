@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
@@ -16,7 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.data.local.entities.Symptom
-import com.strathmore.CareConnect.ui.components.AppLogo
+import com.strathmore.CareConnect.ui.components.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,14 +37,7 @@ fun SymptomHistoryScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { AppLogo() },
-                navigationIcon = {
-                    IconButton(onClick = onBackToHome) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back to Home")
-                    }
-                }
-            )
+            CareTopBar(onBack = onBackToHome)
         }
     ) { padding ->
         Column(
@@ -128,9 +120,8 @@ private fun SymptomHistoryCard(
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

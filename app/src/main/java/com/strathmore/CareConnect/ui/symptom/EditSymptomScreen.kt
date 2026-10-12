@@ -1,10 +1,10 @@
 package com.strathmore.CareConnect.ui.symptom
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,10 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.strathmore.CareConnect.ui.components.AppLogo
+import com.strathmore.CareConnect.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +21,7 @@ fun EditSymptomScreen(
     symptomId: Long,
     onSaved: () -> Unit,
     onBack: () -> Unit,
-     onPainGuide: () -> Unit,
+    onPainGuide: () -> Unit,
     viewModel: SymptomHistoryViewModel = viewModel()
 ) {
     val editingSymptom by viewModel.editingSymptom.collectAsState()
@@ -82,24 +80,17 @@ fun EditSymptomScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { AppLogo() },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            CareTopBar(onBack = onBack)
         }
     ) { padding ->
-       Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .padding(padding)
-        .verticalScroll(rememberScrollState())   // <-- added
-        .padding(24.dp),
-    verticalArrangement = Arrangement.spacedBy(18.dp)
-) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
             Text(
                 "Edit Symptom",
                 style = MaterialTheme.typography.headlineSmall,
@@ -110,7 +101,7 @@ fun EditSymptomScreen(
                 expanded = dropdownExpanded,
                 onExpandedChange = { dropdownExpanded = it }
             ) {
-                OutlinedTextField(
+                CareTextField(
                     value = selectedType,
                     onValueChange = {},
                     readOnly = true,
@@ -137,7 +128,7 @@ fun EditSymptomScreen(
             }
 
             if (selectedType == "Other") {
-                OutlinedTextField(
+                CareTextField(
                     value = otherTypeText,
                     onValueChange = { otherTypeText = it },
                     label = { Text("Describe the symptom") },
@@ -147,8 +138,8 @@ fun EditSymptomScreen(
             }
 
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -165,7 +156,7 @@ fun EditSymptomScreen(
                 }
             }
 
-            OutlinedTextField(
+            CareTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Notes (optional)") },
@@ -181,7 +172,7 @@ fun EditSymptomScreen(
 
             if (showVitals) {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -189,7 +180,7 @@ fun EditSymptomScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedTextField(
+                        CareTextField(
                             value = weightText,
                             onValueChange = { weightText = it },
                             label = { Text("Weight (kg)") },
@@ -199,18 +190,20 @@ fun EditSymptomScreen(
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
+                            CareTextField(
                                 value = systolicText,
                                 onValueChange = { systolicText = it },
-                                label = { Text("BP systolic") },
+                                label = { Text("Blood Pressure:High number") },
+                                supportingText = { Text("Systolic, e.g. 120") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
                             )
-                            OutlinedTextField(
+                            CareTextField(
                                 value = diastolicText,
                                 onValueChange = { diastolicText = it },
-                                label = { Text("BP diastolic") },
+                                label = { Text("Blood Pressure:Low number") },
+                                supportingText = { Text("Diastolic, e.g. 80") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
@@ -229,7 +222,7 @@ fun EditSymptomScreen(
                             )
                         }
 
-                        OutlinedTextField(
+                        CareTextField(
                             value = surveyNote,
                             onValueChange = { surveyNote = it },
                             label = { Text("Quick wellbeing note (optional)") },

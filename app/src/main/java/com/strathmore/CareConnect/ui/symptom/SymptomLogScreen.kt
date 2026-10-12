@@ -1,22 +1,21 @@
 package com.strathmore.CareConnect.ui.symptom
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Info
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.strathmore.CareConnect.ui.components.AppLogo
+import com.strathmore.CareConnect.ui.components.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,24 +49,17 @@ fun SymptomLogScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { AppLogo() },
-                navigationIcon = {
-                    IconButton(onClick = onBackToHome) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back to Home")
-                    }
-                }
-            )
+            CareTopBar(onBack = onBackToHome)
         }
     ) { padding ->
         Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .padding(padding)
-        .verticalScroll(rememberScrollState())   // <-- added
-        .padding(24.dp),
-    verticalArrangement = Arrangement.spacedBy(18.dp)
-) {
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
             Text(
                 "Log Symptoms",
                 style = MaterialTheme.typography.headlineSmall,
@@ -78,7 +70,7 @@ fun SymptomLogScreen(
                 expanded = dropdownExpanded,
                 onExpandedChange = { dropdownExpanded = it }
             ) {
-                OutlinedTextField(
+                CareTextField(
                     value = selectedType,
                     onValueChange = {},
                     readOnly = true,
@@ -105,7 +97,7 @@ fun SymptomLogScreen(
             }
 
             if (selectedType == "Other") {
-                OutlinedTextField(
+                CareTextField(
                     value = otherTypeText,
                     onValueChange = { otherTypeText = it },
                     label = { Text("Describe the symptom") },
@@ -114,9 +106,9 @@ fun SymptomLogScreen(
                 )
             }
 
-                        Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -144,7 +136,7 @@ fun SymptomLogScreen(
                 }
             }
 
-            OutlinedTextField(
+            CareTextField(
                 value = notes,
                 onValueChange = { notes = it },
                 label = { Text("Notes (optional)") },
@@ -161,7 +153,7 @@ fun SymptomLogScreen(
 
             if (showVitals) {
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -169,7 +161,7 @@ fun SymptomLogScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        OutlinedTextField(
+                        CareTextField(
                             value = weightText,
                             onValueChange = { weightText = it },
                             label = { Text("Weight (kg)") },
@@ -179,7 +171,7 @@ fun SymptomLogScreen(
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(
+                            CareTextField(
                                 value = systolicText,
                                 onValueChange = { systolicText = it },
                                 label = { Text("Blood Pressure:High number") },
@@ -188,7 +180,7 @@ fun SymptomLogScreen(
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
                             )
-                            OutlinedTextField(
+                            CareTextField(
                                 value = diastolicText,
                                 onValueChange = { diastolicText = it },
                                 label = { Text("Blood Pressure:Low number") },
@@ -211,7 +203,7 @@ fun SymptomLogScreen(
                             )
                         }
 
-                        OutlinedTextField(
+                        CareTextField(
                             value = surveyNote,
                             onValueChange = { surveyNote = it },
                             label = { Text("Quick wellbeing note (optional)") },
