@@ -5,7 +5,6 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.strathmore.CareConnect.data.local.dao.CaregiverDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
@@ -43,29 +42,44 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
 
-        fun getInstance(context: Context): AppDatabase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
+        fun getInstance(context: Context): AppDatabase {
+            val existing = INSTANCE
+            if (existing != null) return existing
+
+            synchronized(this) {
+                val existingInSync = INSTANCE
+                if (existingInSync != null) return existingInSync
+
+                val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
                     // Offline-first: app must work fully without a network connection.
                     .fallbackToDestructiveMigration() // replace with real Migrations before release
-                    .addCallback(SeedRolesCallback)
                     .build()
-                    .also { INSTANCE = it }
-            }
-    }
 
-    private object SeedRolesCallback : Callback() {
-        override fun onCreate(db: SupportSQLiteDatabase) {
-            super.onCreate(db)
-            // Runs once, the very first time the database file is created.
-            CoroutineScope(Dispatchers.IO).launch {
-                val roleDao = INSTANCE?.roleDao() ?: return@launch
+                INSTANCE = instance
+
+                // Self-healing seed: runs on every launch (not just first creation), so
+                // a destructive schema migration that wipes the roles table gets fixed
+                // automatically on the next app start, instead of crashing registration.
+                CoroutineScope(Dispatchers.IO).launch {
+                    seedRolesIfMissing(instance.roleDao())
+                }
+
+                return instance
+            }
+        }
+
+        private suspend fun seedRolesIfMissing(roleDao: RoleDao) {
+            if (roleDao.getByName("Caregiver") == null) {
                 roleDao.insert(Role(name = "Caregiver", description = "Family caregiver of a cancer patient"))
+            }
+            if (roleDao.getByName("Nurse") == null) {
                 roleDao.insert(Role(name = "Nurse", description = "Registered nurse offering home visits"))
+            }
+            if (roleDao.getByName("Administrator") == null) {
                 roleDao.insert(Role(name = "Administrator", description = "System administrator"))
             }
         }
