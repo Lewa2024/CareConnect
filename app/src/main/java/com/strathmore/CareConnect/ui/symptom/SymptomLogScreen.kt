@@ -2,13 +2,17 @@ package com.strathmore.CareConnect.ui.symptom
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.filled.Info
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 
@@ -18,6 +22,7 @@ fun SymptomLogScreen(
     caregiverId: Long,
     patientId: Long,
     onBackToHome: () -> Unit,
+    onPainGuide: () -> Unit,
     viewModel: SymptomViewModel = viewModel()
 ) {
     var selectedType by remember { mutableStateOf("") }
@@ -26,13 +31,19 @@ fun SymptomLogScreen(
     var rating by remember { mutableStateOf(5f) }
     var notes by remember { mutableStateOf("") }
 
+    var showVitals by remember { mutableStateOf(false) }
+    var weightText by remember { mutableStateOf("") }
+    var systolicText by remember { mutableStateOf("") }
+    var diastolicText by remember { mutableStateOf("") }
+    var medicationTaken by remember { mutableStateOf<Boolean?>(null) }
+    var surveyNote by remember { mutableStateOf("") }
+
     val saveState by viewModel.saveState.collectAsState()
 
     LaunchedEffect(caregiverId) {
         viewModel.loadPatients(caregiverId)
     }
 
-    // The actual type to save: either the dropdown pick, or whatever was typed for "Other".
     val effectiveType = if (selectedType == "Other") otherTypeText else selectedType
 
     Scaffold(
@@ -100,16 +111,27 @@ fun SymptomLogScreen(
                 )
             }
 
-            Surface(
+                        Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Severity: ${rating.toInt()} / 10",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Severity: ${rating.toInt()} / 10",
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = onPainGuide) {
+                            Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Guide", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
                     Slider(
                         value = rating,
                         onValueChange = { rating = it },
@@ -126,9 +148,88 @@ fun SymptomLogScreen(
                 modifier = Modifier.fillMaxWidth().height(120.dp)
             )
 
+            // Optional vitals, collapsed by default to keep the core form short.
+            TextButton(
+                onClick = { showVitals = !showVitals },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (showVitals) "Hide vitals (optional)" else "+ Add vitals (optional)")
+            }
+
+            if (showVitals) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = weightText,
+                            onValueChange = { weightText = it },
+                            label = { Text("Weight (kg)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = systolicText,
+                                onValueChange = { systolicText = it },
+                                label = { Text("BP systolic") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = diastolicText,
+                                onValueChange = { diastolicText = it },
+                                label = { Text("BP diastolic") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Medication taken today?")
+                            Switch(
+                                checked = medicationTaken == true,
+                                onCheckedChange = { medicationTaken = it }
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = surveyNote,
+                            onValueChange = { surveyNote = it },
+                            label = { Text("Quick wellbeing note (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
-                    viewModel.logSymptom(patientId, effectiveType, rating.toInt(), notes)
+                    viewModel.logSymptom(
+                        patientId = patientId,
+                        type = effectiveType,
+                        rating = rating.toInt(),
+                        notes = notes,
+                        weightKg = weightText.trim().toDoubleOrNull(),
+                        systolicBp = systolicText.trim().toIntOrNull(),
+                        diastolicBp = diastolicText.trim().toIntOrNull(),
+                        medicationTaken = medicationTaken,
+                        surveyNote = surveyNote.trim().ifBlank { null }
+                    )
                 },
                 enabled = saveState !is SaveState.Saving,
                 shape = MaterialTheme.shapes.medium,

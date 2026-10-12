@@ -21,6 +21,7 @@ fun EditSymptomScreen(
     symptomId: Long,
     onSaved: () -> Unit,
     onBack: () -> Unit,
+     onPainGuide: () -> Unit,
     viewModel: SymptomHistoryViewModel = viewModel()
 ) {
     val editingSymptom by viewModel.editingSymptom.collectAsState()

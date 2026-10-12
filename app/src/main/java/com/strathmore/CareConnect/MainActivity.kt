@@ -20,6 +20,7 @@ import com.strathmore.CareConnect.ui.profile.ProfileScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.EditSymptomScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
+import com.strathmore.CareConnect.ui.symptom.PainGuideScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
 
 class MainActivity : ComponentActivity() {
@@ -179,10 +180,11 @@ private fun CareConnectNavHost() {
         ) { backStackEntry ->
             val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
-            SymptomLogScreen(
+                SymptomLogScreen(
                 caregiverId = caregiverId,
                 patientId = patientId,
-                onBackToHome = { navController.popBackStack() }
+                onBackToHome = { navController.popBackStack() },
+                onPainGuide = { navController.navigate("pain_guide") }
             )
         }
 
@@ -191,7 +193,7 @@ private fun CareConnectNavHost() {
             arguments = listOf(navArgument("patientId") { type = NavType.LongType })
         ) { backStackEntry ->
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
-                      SymptomHistoryScreen(
+            SymptomHistoryScreen(
                 patientId = patientId,
                 onBackToHome = { navController.popBackStack() }
             ) 
@@ -204,8 +206,12 @@ private fun CareConnectNavHost() {
             EditSymptomScreen(
                 symptomId = symptomId,
                 onSaved = { navController.popBackStack() },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onPainGuide = { navController.navigate("pain_guide") }
             )
         }
+        composable("pain_guide") {
+            PainGuideScreen(onBack = { navController.popBackStack() })
+        } 
     }
 }

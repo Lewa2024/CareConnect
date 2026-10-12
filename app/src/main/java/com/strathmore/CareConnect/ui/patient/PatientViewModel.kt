@@ -37,7 +37,8 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         name: String,
         dateOfBirthMillis: Long,
         medicalHistory: String,
-        medication: String
+        medication: String,
+        heightCm: Double?
     ) {
         if (name.isBlank()) {
             _saveState.value = PatientSaveState.Error("Please enter the patient's name")
@@ -47,7 +48,7 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
             _saveState.value = PatientSaveState.Saving
             try {
                 val patientId = repository.addPatient(
-                    caregiverId, name, dateOfBirthMillis, medicalHistory, medication
+                    caregiverId, name, dateOfBirthMillis, medicalHistory, medication, heightCm
                 )
                 _saveState.value = PatientSaveState.Saved(patientId)
             } catch (e: Exception) {
@@ -89,7 +90,8 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         name: String,
         dateOfBirthMillis: Long,
         medicalHistory: String,
-        medication: String
+        medication: String,
+        heightCm: Double?
     ) {
         if (name.isBlank()) {
             _editState.value = EditState.Error("Name can't be empty")
@@ -98,7 +100,7 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _editState.value = EditState.Saving
             try {
-                repository.updatePatient(patientId, name, dateOfBirthMillis, medicalHistory, medication)
+                repository.updatePatient(patientId, name, dateOfBirthMillis, medicalHistory, medication, heightCm)
                 _editState.value = EditState.Saved
             } catch (e: Exception) {
                 _editState.value = EditState.Error(e.message ?: "Failed to update patient")
