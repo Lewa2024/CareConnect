@@ -72,9 +72,10 @@ fun PatientDetailsScreen(
                 )
 
                 DetailCard(label = "Date of Birth", value = dobFormatter.format(Date(p.dateOfBirth)))
+                DetailCard(label = "Height", value = p.heightCm?.let { "$it cm" } ?: "Not recorded")
                 DetailCard(label = "Medical History", value = p.medicalHistory.ifBlank { "None recorded" })
-                DetailCard(label = "Current Medication", value = p.medication.ifBlank { "None recorded" })
-
+                DetailCard(label = "Current Medication", value = p.medication.ifBlank { "None recorded" })                  
+                
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedButton(

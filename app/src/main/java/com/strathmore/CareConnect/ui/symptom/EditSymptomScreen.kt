@@ -2,12 +2,15 @@ package com.strathmore.CareConnect.ui.symptom
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
@@ -28,14 +31,20 @@ fun EditSymptomScreen(
     var dropdownExpanded by remember { mutableStateOf(false) }
     var rating by remember { mutableStateOf(5f) }
     var notes by remember { mutableStateOf("") }
+
+    var showVitals by remember { mutableStateOf(false) }
+    var weightText by remember { mutableStateOf("") }
+    var systolicText by remember { mutableStateOf("") }
+    var diastolicText by remember { mutableStateOf("") }
+    var medicationTaken by remember { mutableStateOf<Boolean?>(null) }
+    var surveyNote by remember { mutableStateOf("") }
+
     var hasInitialized by remember { mutableStateOf(false) }
 
     LaunchedEffect(symptomId) {
         viewModel.loadSymptomForEdit(symptomId)
     }
 
-    // Seed the fields once the symptom loads, but only the first time —
-    // so we don't overwrite what the user is typing on every recomposition.
     LaunchedEffect(editingSymptom) {
         if (!hasInitialized && editingSymptom != null) {
             val s = editingSymptom!!
@@ -47,6 +56,14 @@ fun EditSymptomScreen(
             }
             rating = s.rating.toFloat()
             notes = s.notes
+            weightText = s.weightKg?.toString() ?: ""
+            systolicText = s.systolicBp?.toString() ?: ""
+            diastolicText = s.diastolicBp?.toString() ?: ""
+            medicationTaken = s.medicationTaken
+            surveyNote = s.surveyNote ?: ""
+            if (s.weightKg != null || s.systolicBp != null || s.medicationTaken != null || !s.surveyNote.isNullOrBlank()) {
+                showVitals = true
+            }
             hasInitialized = true
         }
     }
@@ -151,8 +168,88 @@ fun EditSymptomScreen(
                 modifier = Modifier.fillMaxWidth().height(120.dp)
             )
 
+            TextButton(
+                onClick = { showVitals = !showVitals },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (showVitals) "Hide vitals (optional)" else "+ Add vitals (optional)")
+            }
+
+            if (showVitals) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = weightText,
+                            onValueChange = { weightText = it },
+                            label = { Text("Weight (kg)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = systolicText,
+                                onValueChange = { systolicText = it },
+                                label = { Text("BP systolic") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = diastolicText,
+                                onValueChange = { diastolicText = it },
+                                label = { Text("BP diastolic") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Medication taken today?")
+                            Switch(
+                                checked = medicationTaken == true,
+                                onCheckedChange = { medicationTaken = it }
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = surveyNote,
+                            onValueChange = { surveyNote = it },
+                            label = { Text("Quick wellbeing note (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+
             Button(
-                onClick = { viewModel.updateSymptom(symptomId, effectiveType, rating.toInt(), notes) },
+                onClick = {
+                    viewModel.updateSymptom(
+                        symptomId,
+                        effectiveType,
+                        rating.toInt(),
+                        notes,
+                        weightText.trim().toDoubleOrNull(),
+                        systolicText.trim().toIntOrNull(),
+                        diastolicText.trim().toIntOrNull(),
+                        medicationTaken,
+                        surveyNote.trim().ifBlank { null }
+                    )
+                },
                 enabled = editState !is SymptomEditState.Saving,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().height(50.dp)

@@ -22,6 +22,7 @@ fun AddPatientScreen(
     var dateOfBirthText by remember { mutableStateOf("") } // format: YYYY-MM-DD
     var medicalHistory by remember { mutableStateOf("") }
     var medication by remember { mutableStateOf("") }
+    var heightText by remember { mutableStateOf("") }
     var dateError by remember { mutableStateOf<String?>(null) }
 
     val saveState by viewModel.saveState.collectAsState()
@@ -75,6 +76,17 @@ fun AddPatientScreen(
             )
 
             OutlinedTextField(
+                value = heightText,
+                onValueChange = { heightText = it },
+                label = { Text("Height (cm) — optional") },
+                singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
                 value = medicalHistory,
                 onValueChange = { medicalHistory = it },
                 label = { Text("Medical history") },
@@ -98,7 +110,8 @@ fun AddPatientScreen(
                         dateError = "Enter a valid date as YYYY-MM-DD"
                         return@Button
                     }
-                    viewModel.addPatient(caregiverId, name, millis, medicalHistory, medication)
+                    val height = heightText.trim().toDoubleOrNull()
+                    viewModel.addPatient(caregiverId, name, millis, medicalHistory, medication, height)
                 },
                 enabled = saveState !is PatientSaveState.Saving,
                 shape = MaterialTheme.shapes.medium,

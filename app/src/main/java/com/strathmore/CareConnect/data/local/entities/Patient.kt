@@ -21,7 +21,8 @@ data class Patient(
     @PrimaryKey(autoGenerate = true) val patientId: Long = 0,
     val caregiverId: Long,
     val name: String,
-    val dateOfBirth: Long,       // stored as epoch millis, converted via Converters (next step)
+    val dateOfBirth: Long,       // stored as epoch millis, converted via Converters
     val medicalHistory: String,
-    val medication: String
+    val medication: String,
+    val heightCm: Double? = null   // baseline height in centimeters, optional
 )

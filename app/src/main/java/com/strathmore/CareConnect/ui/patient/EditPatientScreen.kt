@@ -28,6 +28,7 @@ fun EditPatientScreen(
     var dateOfBirthText by remember { mutableStateOf("") }
     var medicalHistory by remember { mutableStateOf("") }
     var medication by remember { mutableStateOf("") }
+    var heightText by remember { mutableStateOf("") }
     var dateError by remember { mutableStateOf<String?>(null) }
     var hasInitialized by remember { mutableStateOf(false) }
 
@@ -35,8 +36,6 @@ fun EditPatientScreen(
         viewModel.loadPatientForEdit(patientId)
     }
 
-    // Seed the fields once the patient loads, but only the first time —
-    // so we don't overwrite what the user is typing on every recomposition.
     LaunchedEffect(editingPatient) {
         if (!hasInitialized && editingPatient != null) {
             val p = editingPatient!!
@@ -44,6 +43,7 @@ fun EditPatientScreen(
             dateOfBirthText = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(java.util.Date(p.dateOfBirth))
             medicalHistory = p.medicalHistory
             medication = p.medication
+            heightText = p.heightCm?.toString() ?: ""
             hasInitialized = true
         }
     }
@@ -84,67 +84,3 @@ fun EditPatientScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Patient's full name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = dateOfBirthText,
-                onValueChange = { dateOfBirthText = it; dateError = null },
-                label = { Text("Date of birth (YYYY-MM-DD)") },
-                singleLine = true,
-                isError = dateError != null,
-                supportingText = { dateError?.let { Text(it) } },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = medicalHistory,
-                onValueChange = { medicalHistory = it },
-                label = { Text("Medical history") },
-                modifier = Modifier.fillMaxWidth().height(110.dp)
-            )
-
-            OutlinedTextField(
-                value = medication,
-                onValueChange = { medication = it },
-                label = { Text("Current medication") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Button(
-                onClick = {
-                    val millis = parseDateOrNull(dateOfBirthText)
-                    if (millis == null) {
-                        dateError = "Enter a valid date as YYYY-MM-DD"
-                        return@Button
-                    }
-                    viewModel.updatePatient(patientId, name, millis, medicalHistory, medication)
-                },
-                enabled = editState !is EditState.Saving,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
-            ) {
-                Text(if (editState is EditState.Saving) "Saving..." else "Save Changes")
-            }
-
-            if (editState is EditState.Error) {
-                Text(
-                    (editState as EditState.Error).message,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    }
-}
-
-private fun parseDateOrNull(text: String): Long? {
-    return try {
-        val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        format.isLenient = false
-        format.parse(text.trim())?.time
-    } catch (e: Exception) {
-        null
-    }
-}

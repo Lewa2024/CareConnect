@@ -14,14 +14,24 @@ class SymptomRepository(
         patientId: Long,
         type: String,
         rating: Int,
-        notes: String
+        notes: String,
+        weightKg: Double? = null,
+        systolicBp: Int? = null,
+        diastolicBp: Int? = null,
+        medicationTaken: Boolean? = null,
+        surveyNote: String? = null
     ): Long {
         val symptom = Symptom(
             patientId = patientId,
             type = type,
             rating = rating,
             date = System.currentTimeMillis(),
-            notes = notes
+            notes = notes,
+            weightKg = weightKg,
+            systolicBp = systolicBp,
+            diastolicBp = diastolicBp,
+            medicationTaken = medicationTaken,
+            surveyNote = surveyNote
         )
         return symptomDao.insert(symptom)
     }
@@ -32,10 +42,31 @@ class SymptomRepository(
     suspend fun getSymptom(symptomId: Long): Symptom? =
         symptomDao.getById(symptomId)
 
-    suspend fun updateSymptom(symptomId: Long, type: String, rating: Int, notes: String) {
+    suspend fun updateSymptom(
+        symptomId: Long,
+        type: String,
+        rating: Int,
+        notes: String,
+        weightKg: Double? = null,
+        systolicBp: Int? = null,
+        diastolicBp: Int? = null,
+        medicationTaken: Boolean? = null,
+        surveyNote: String? = null
+    ) {
         val existing = symptomDao.getById(symptomId)
             ?: throw IllegalStateException("Symptom not found")
-        symptomDao.update(existing.copy(type = type, rating = rating, notes = notes))
+        symptomDao.update(
+            existing.copy(
+                type = type,
+                rating = rating,
+                notes = notes,
+                weightKg = weightKg,
+                systolicBp = systolicBp,
+                diastolicBp = diastolicBp,
+                medicationTaken = medicationTaken,
+                surveyNote = surveyNote
+            )
+        )
     }
 
     suspend fun deleteSymptom(symptomId: Long) {

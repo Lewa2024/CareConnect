@@ -34,7 +34,17 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun logSymptom(patientId: Long, type: String, rating: Int, notes: String) {
+    fun logSymptom(
+        patientId: Long,
+        type: String,
+        rating: Int,
+        notes: String,
+        weightKg: Double?,
+        systolicBp: Int?,
+        diastolicBp: Int?,
+        medicationTaken: Boolean?,
+        surveyNote: String?
+    ) {
         if (type.isBlank()) {
             _saveState.value = SaveState.Error("Please select a symptom type")
             return
@@ -46,7 +56,10 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _saveState.value = SaveState.Saving
             try {
-                repository.logSymptom(patientId, type, rating, notes)
+                repository.logSymptom(
+                    patientId, type, rating, notes,
+                    weightKg, systolicBp, diastolicBp, medicationTaken, surveyNote
+                )
                 _saveState.value = SaveState.Saved
             } catch (e: Exception) {
                 _saveState.value = SaveState.Error(e.message ?: "Failed to save symptom")

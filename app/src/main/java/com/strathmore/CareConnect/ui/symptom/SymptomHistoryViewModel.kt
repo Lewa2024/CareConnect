@@ -49,7 +49,17 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
-    fun updateSymptom(symptomId: Long, type: String, rating: Int, notes: String) {
+    fun updateSymptom(
+        symptomId: Long,
+        type: String,
+        rating: Int,
+        notes: String,
+        weightKg: Double?,
+        systolicBp: Int?,
+        diastolicBp: Int?,
+        medicationTaken: Boolean?,
+        surveyNote: String?
+    ) {
         if (type.isBlank()) {
             _editState.value = SymptomEditState.Error("Please select a symptom type")
             return
@@ -61,7 +71,10 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             _editState.value = SymptomEditState.Saving
             try {
-                repository.updateSymptom(symptomId, type, rating, notes)
+                repository.updateSymptom(
+                    symptomId, type, rating, notes,
+                    weightKg, systolicBp, diastolicBp, medicationTaken, surveyNote
+                )
                 _editState.value = SymptomEditState.Saved
             } catch (e: Exception) {
                 _editState.value = SymptomEditState.Error(e.message ?: "Failed to update symptom")
