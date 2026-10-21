@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -14,14 +15,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.foundation.background
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-
 
 /**
  * A slide in the memorial slideshow: an image resource (a @DrawableRes Int, supplied by the
@@ -39,7 +38,7 @@ fun MemorialSlideshow(
     modifier: Modifier = Modifier,
     intervalMillis: Long = 4000L
 ) {
-    var currentIndex by remember { mutableStateOf(0) }
+    var currentIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(slides.size) {
         if (slides.size > 1) {
@@ -50,91 +49,83 @@ fun MemorialSlideshow(
         }
     }
 
-    Surface(
+    Card(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
                 Icon(
-                    Icons.Default.FavoriteBorder,
+                    imageVector = Icons.Default.FavoriteBorder,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "In loving memory of $dedicationName",
+                    text = if (dedicationName.isNotBlank()) "In Memory of $dedicationName" else "In Loving Memory",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    fontStyle = FontStyle.Italic,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             if (slides.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Add photos to app/src/main/res/drawable to display them here.",
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(16.dp)
+                        text = "No memorial photos available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontStyle = FontStyle.Italic
                     )
                 }
             } else {
+                val safeIndex = currentIndex.coerceIn(0, slides.lastIndex)
+                val currentSlide = slides[safeIndex]
+
                 AnimatedContent(
-                    targetState = currentIndex,
+                    targetState = currentSlide,
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
-                    label = "memorial_slideshow"
-                ) { index ->
-                    val slide = slides[index]
-                    Column {
+                    label = "memorial_slide"
+                ) { slide ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Image(
                             painter = slide.painter(),
                             contentDescription = slide.caption,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp)
+                                .height(200.dp)
                                 .clip(RoundedCornerShape(12.dp))
                         )
-                        slide.caption?.let {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
-
-                if (slides.size > 1) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        slides.indices.forEach { i ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 3.dp)
-                                    .size(if (i == currentIndex) 8.dp else 6.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(
-                                        if (i == currentIndex)
-                                            MaterialTheme.colorScheme.onSecondaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.3f)
-                                    )
-                            )
+                        slide.caption?.let { caption ->
+                            if (caption.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = caption,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontStyle = FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
