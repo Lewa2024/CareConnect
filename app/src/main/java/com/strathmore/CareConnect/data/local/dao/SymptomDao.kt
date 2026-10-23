@@ -29,7 +29,15 @@ interface SymptomDao {
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' AND rating >= :minRating AND date >= :sinceDate")
     suspend fun getSevereSymptoms(patientId: Long, minRating: Int, sinceDate: Long): List<Symptom>
 
-    
-        @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 1")
+     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 1")
     suspend fun getMostRecent(patientId: Long): Symptom?
+
+     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND type = :type AND status = 'ACTIVE' ORDER BY date DESC LIMIT :limit")
+    suspend fun getRecentByType(patientId: Long, type: String, limit: Int): List<Symptom>
+
+    @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND type = :type AND status = 'ACTIVE' ORDER BY date DESC")
+    suspend fun getAllByType(patientId: Long, type: String): List<Symptom>
+
+    @Query("SELECT DISTINCT type FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE'")
+    suspend fun getDistinctTypesForPatient(patientId: Long): List<String>
 }

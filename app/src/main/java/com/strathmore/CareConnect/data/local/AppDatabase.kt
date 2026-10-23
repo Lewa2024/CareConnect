@@ -6,13 +6,17 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.strathmore.CareConnect.data.local.dao.CaregiverDao
+import com.strathmore.CareConnect.data.local.dao.NotificationDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
+import com.strathmore.CareConnect.data.local.dao.RuleThresholdDao
 import com.strathmore.CareConnect.data.local.dao.SymptomDao
 import com.strathmore.CareConnect.data.local.dao.UserDao
 import com.strathmore.CareConnect.data.local.entities.Caregiver
+import com.strathmore.CareConnect.data.local.entities.Notification
 import com.strathmore.CareConnect.data.local.entities.Patient
 import com.strathmore.CareConnect.data.local.entities.Role
+import com.strathmore.CareConnect.data.local.entities.RuleThreshold
 import com.strathmore.CareConnect.data.local.entities.Symptom
 import com.strathmore.CareConnect.data.local.entities.User
 import kotlinx.coroutines.CoroutineScope
@@ -25,9 +29,11 @@ import kotlinx.coroutines.launch
         User::class,
         Caregiver::class,
         Patient::class,
-        Symptom::class
+        Symptom::class,
+        RuleThreshold::class,
+        Notification::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,6 +44,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun caregiverDao(): CaregiverDao
     abstract fun patientDao(): PatientDao
     abstract fun symptomDao(): SymptomDao
+    abstract fun ruleThresholdDao(): RuleThresholdDao
+    abstract fun notificationDao(): NotificationDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -55,20 +63,29 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    // Offline-first: app must work fully without a network connection.
-                    .fallbackToDestructiveMigration() // replace with real Migrations before release
+                    .fallbackToDestructiveMigration()
                     .build()
 
                 INSTANCE = instance
 
-                // Self-healing seed: runs on every launch (not just first creation), so
-                // a destructive schema migration that wipes the roles table gets fixed
-                // automatically on the next app start, instead of crashing registration.
                 CoroutineScope(Dispatchers.IO).launch {
                     seedRolesIfMissing(instance.roleDao())
+                    seedDefaultThresholdIfMissing(instance.ruleThresholdDao())
                 }
 
                 return instance
+            }
+        }
+
+        private suspend fun seedDefaultThresholdIfMissing(ruleThresholdDao: RuleThresholdDao) {
+            if (ruleThresholdDao.getByMetric("Pain") == null) {
+                ruleThresholdDao.insert(
+                    RuleThreshold(
+                        metric = "Pain",
+                        thresholdValue = 8,
+                        consecutiveEntriesRequired = 3
+                    )
+                )
             }
         }
 

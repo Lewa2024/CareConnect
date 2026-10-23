@@ -39,6 +39,7 @@ fun HomeScreen(
 ) {
     val patient by viewModel.patient.collectAsState()
     val latestEntry by viewModel.latestEntry.collectAsState()
+    val latestAlert by viewModel.latestAlert.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -227,27 +228,57 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                "Recent alerts",
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(10.dp))
+             Text("Recent alerts", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(10.dp))
 
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        "No alerts yet — the rule engine isn't built yet.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+                val alert = latestAlert
+                if (alert == null) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                "No alerts yet. The rule engine checks every symptom you log.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    val isUrgent = alert.urgency == "URGENT"
+                    val accentColor = if (isUrgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = accentColor.copy(alpha = 0.1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { patient?.let { onViewHistory(it.patientId) } }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(color = accentColor, shape = RoundedCornerShape(20.dp)) {
+                                Text(
+                                    alert.urgency,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                alert.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }  
 
             Spacer(modifier = Modifier.height(16.dp))
         }

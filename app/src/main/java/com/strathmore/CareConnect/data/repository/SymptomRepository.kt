@@ -1,15 +1,22 @@
 package com.strathmore.CareConnect.data.repository
 
+import com.strathmore.CareConnect.data.local.dao.NotificationDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
+import com.strathmore.CareConnect.data.local.dao.RuleThresholdDao
 import com.strathmore.CareConnect.data.local.dao.SymptomDao
+import com.strathmore.CareConnect.data.local.entities.Notification
 import com.strathmore.CareConnect.data.local.entities.Patient
 import com.strathmore.CareConnect.data.local.entities.Symptom
 import kotlinx.coroutines.flow.Flow
 
 class SymptomRepository(
     private val symptomDao: SymptomDao,
-    private val patientDao: PatientDao
+    private val patientDao: PatientDao,
+    ruleThresholdDao: RuleThresholdDao,
+    notificationDao: NotificationDao
 ) {
+    private val ruleEngine = RuleEngine(symptomDao, ruleThresholdDao, notificationDao)
+
     suspend fun logSymptom(
         patientId: Long,
         type: String,
@@ -20,7 +27,7 @@ class SymptomRepository(
         diastolicBp: Int? = null,
         medicationTaken: Boolean? = null,
         surveyNote: String? = null
-    ): Long {
+    ): List<Notification> {
         val symptom = Symptom(
             patientId = patientId,
             type = type,
@@ -33,7 +40,8 @@ class SymptomRepository(
             medicationTaken = medicationTaken,
             surveyNote = surveyNote
         )
-        return symptomDao.insert(symptom)
+        val symptomId = symptomDao.insert(symptom)
+        return ruleEngine.evaluateAfterLogging(patientId, symptomId, type)
     }
 
     fun getHistory(patientId: Long): Flow<List<Symptom>> =
@@ -70,6 +78,9 @@ class SymptomRepository(
                 surveyNote = surveyNote
             )
         )
+        // Re-evaluate rules after an edit too — a severity change could newly trigger
+        // (or should probably still check) the same rules a fresh log would.
+        ruleEngine.evaluateAfterLogging(existing.patientId, symptomId, type)
     }
 
     suspend fun deleteSymptom(symptomId: Long) {

@@ -17,7 +17,7 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
 
     init {
         val db = (application as CareConnectApp).database
-        repository = SymptomRepository(db.symptomDao(), db.patientDao())
+        repository = SymptomRepository(db.symptomDao(), db.patientDao(), db.ruleThresholdDao(), db.notificationDao())
     }
 
     private val _history = MutableStateFlow<List<Symptom>>(emptyList())

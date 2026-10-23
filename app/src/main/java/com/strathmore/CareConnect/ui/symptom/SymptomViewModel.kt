@@ -17,7 +17,7 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         val db = (application as CareConnectApp).database
-        repository = SymptomRepository(db.symptomDao(), db.patientDao())
+        repository = SymptomRepository(db.symptomDao(), db.patientDao(), db.ruleThresholdDao(), db.notificationDao())
     }
 
     private val _patients = MutableStateFlow<List<Patient>>(emptyList())
