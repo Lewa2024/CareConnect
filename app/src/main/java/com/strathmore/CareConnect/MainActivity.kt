@@ -3,12 +3,17 @@ package com.strathmore.CareConnect
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.strathmore.CareConnect.ui.alerts.AlertsScreen
 import com.strathmore.CareConnect.ui.auth.ForgotPasswordScreen
 import com.strathmore.CareConnect.ui.auth.LoginScreen
 import com.strathmore.CareConnect.ui.auth.RegisterScreen
@@ -17,10 +22,10 @@ import com.strathmore.CareConnect.ui.patient.AddPatientScreen
 import com.strathmore.CareConnect.ui.patient.EditPatientScreen
 import com.strathmore.CareConnect.ui.patient.PatientDetailsScreen
 import com.strathmore.CareConnect.ui.profile.ProfileScreen
-import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.EditSymptomScreen
-import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
 import com.strathmore.CareConnect.ui.symptom.PainGuideScreen
+import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
+import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
 
 class MainActivity : ComponentActivity() {
@@ -38,7 +43,22 @@ class MainActivity : ComponentActivity() {
 private fun CareConnectNavHost() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(
+        navController = navController,
+        startDestination = "login",
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { it / 4 }) + fadeIn()
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut()
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it / 4 }) + fadeOut()
+        }
+    ) {
 
         composable("login") {
             LoginScreen(
@@ -101,6 +121,9 @@ private fun CareConnectNavHost() {
                 },
                 onViewPatientDetails = { patientId ->
                     navController.navigate("patient_details/$patientId")
+                },
+                onViewAlerts = { patientId ->
+                    navController.navigate("alerts/$caregiverId/$patientId")
                 },
                 onProfile = {
                     navController.navigate("profile/$caregiverId")
@@ -180,7 +203,7 @@ private fun CareConnectNavHost() {
         ) { backStackEntry ->
             val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
             val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
-                SymptomLogScreen(
+            SymptomLogScreen(
                 caregiverId = caregiverId,
                 patientId = patientId,
                 onBackToHome = { navController.popBackStack() },
@@ -199,8 +222,9 @@ private fun CareConnectNavHost() {
                 onEditSymptom = { symptomId ->
                     navController.navigate("edit_symptom/$symptomId")
                 }
-            ) 
+            )
         }
+
         composable(
             route = "edit_symptom/{symptomId}",
             arguments = listOf(navArgument("symptomId") { type = NavType.LongType })
@@ -213,8 +237,31 @@ private fun CareConnectNavHost() {
                 onPainGuide = { navController.navigate("pain_guide") }
             )
         }
+
         composable("pain_guide") {
             PainGuideScreen(onBack = { navController.popBackStack() })
-        } 
+        }
+
+        composable(
+            route = "alerts/{caregiverId}/{patientId}",
+            arguments = listOf(
+                navArgument("caregiverId") { type = NavType.LongType },
+                navArgument("patientId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            AlertsScreen(
+                patientId = patientId,
+                onHome = { navController.popBackStack() },
+                onHistory = {
+                    navController.navigate("symptom_history/$patientId")
+                },
+                onProfile = {
+                    navController.navigate("profile/$caregiverId")
+                },
+                onComingSoon = { }
+            )
+        }
     }
 }
