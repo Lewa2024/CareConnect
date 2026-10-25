@@ -32,6 +32,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _latestAlert = MutableStateFlow<Notification?>(null)
     val latestAlert: StateFlow<Notification?> = _latestAlert.asStateFlow()
 
+     private val _trend = MutableStateFlow<List<Symptom>>(emptyList())
+    val trend: StateFlow<List<Symptom>> = _trend.asStateFlow()
+
+
     fun loadPatient(caregiverId: Long) {
         viewModelScope.launch {
             repository.getPatientsForCaregiver(caregiverId).collect { patients ->
@@ -39,6 +43,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _patient.value?.let {
                     loadLatestEntry(it.patientId)
                     loadLatestAlert(it.patientId)
+                      loadTrend(it.patientId)
                 }
             }
         }
@@ -53,6 +58,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadLatestAlert(patientId: Long) {
         viewModelScope.launch {
             _latestAlert.value = notificationDao.getMostRecent(patientId)
+        }
+    }
+
+    private fun loadTrend(patientId: Long) {
+        viewModelScope.launch {
+            _trend.value = repository.getRecentTrend(patientId)
         }
     }
 }

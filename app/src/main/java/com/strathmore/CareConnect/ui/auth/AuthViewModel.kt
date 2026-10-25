@@ -22,6 +22,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
+    private val _resetPasswordState = MutableStateFlow<ResetPasswordState>(ResetPasswordState.Idle)
+    val resetPasswordState: StateFlow<ResetPasswordState> = _resetPasswordState.asStateFlow()
+
     fun register(
         firstName: String,
         lastName: String,
@@ -46,7 +49,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 val caregiverId = repository.getCaregiverId(userId)
                     ?: throw IllegalStateException("Caregiver profile not found after registration")
-                _authState.value = AuthState.Success(caregiverId)
+                _authState.value = AuthState.CaregiverSuccess(caregiverId)
             } catch (e: Exception) {
                 _authState.value = AuthState.Error(e.message ?: "Registration failed")
             }
@@ -65,13 +68,25 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 _authState.value = AuthState.Error("Invalid email or password")
                 return@launch
             }
-            val caregiverId = repository.getCaregiverId(user.userId)
-                ?: throw IllegalStateException("Caregiver profile not found for this user")
-            _authState.value = AuthState.Success(caregiverId)
+
+            when (repository.getRoleName(user.roleId)) {
+                "Administrator" -> {
+                    _authState.value = AuthState.AdminSuccess(user.userId)
+                }
+                "Caregiver" -> {
+                    val caregiverId = repository.getCaregiverId(user.userId)
+                    if (caregiverId == null) {
+                        _authState.value = AuthState.Error("Caregiver profile not found for this account")
+                    } else {
+                        _authState.value = AuthState.CaregiverSuccess(caregiverId)
+                    }
+                }
+                else -> {
+                    _authState.value = AuthState.Error("This account type isn't supported yet")
+                }
+            }
         }
     }
-        private val _resetPasswordState = MutableStateFlow<ResetPasswordState>(ResetPasswordState.Idle)
-    val resetPasswordState: StateFlow<ResetPasswordState> = _resetPasswordState.asStateFlow()
 
     fun resetPassword(email: String, newPassword: String) {
         if (email.isBlank() || newPassword.isBlank()) {
@@ -96,6 +111,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun resetPasswordStateReset() {
         _resetPasswordState.value = ResetPasswordState.Idle
     }
+
     fun resetState() {
         _authState.value = AuthState.Idle
     }
@@ -104,7 +120,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 sealed class AuthState {
     data object Idle : AuthState()
     data object Loading : AuthState()
-    data class Success(val caregiverId: Long) : AuthState()
+    data class CaregiverSuccess(val caregiverId: Long) : AuthState()
+    data class AdminSuccess(val userId: Long) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 

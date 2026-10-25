@@ -68,9 +68,10 @@ abstract class AppDatabase : RoomDatabase() {
 
                 INSTANCE = instance
 
-                CoroutineScope(Dispatchers.IO).launch {
+                                CoroutineScope(Dispatchers.IO).launch {
                     seedRolesIfMissing(instance.roleDao())
                     seedDefaultThresholdIfMissing(instance.ruleThresholdDao())
+                    seedDefaultAdminIfMissing(instance.roleDao(), instance.userDao())
                 }
 
                 return instance
@@ -88,7 +89,39 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             }
         }
+                private suspend fun seedDefaultAdminIfMissing(
+            roleDao: RoleDao,
+            userDao: com.strathmore.CareConnect.data.local.dao.UserDao
+        ) {
+            val existing = userDao.getByEmail("admin@careconnect.com")
+            if (existing != null) return
 
+            val adminRole = roleDao.getByName("Administrator") ?: return
+
+            // Default demo admin account. Password: Admin@123
+            // Salted with the same SHA-256(salt + password) scheme as AuthRepository.hash().
+            val salt = java.security.SecureRandom().let { rnd ->
+                val bytes = ByteArray(16)
+                rnd.nextBytes(bytes)
+                bytes.joinToString("") { "%02x".format(it) }
+            }
+            val passwordHash = java.security.MessageDigest.getInstance("SHA-256")
+                .digest((salt + "Admin@123").toByteArray())
+                .joinToString("") { "%02x".format(it) }
+
+            userDao.insert(
+                com.strathmore.CareConnect.data.local.entities.User(
+                    roleId = adminRole.roleId,
+                    firstName = "System",
+                    lastName = "Administrator",
+                    email = "admin@careconnect.com",
+                    password = passwordHash,
+                    salt = salt,
+                    phoneNumber = "0700000000"
+                )
+            )
+        }
+        
         private suspend fun seedRolesIfMissing(roleDao: RoleDao) {
             if (roleDao.getByName("Caregiver") == null) {
                 roleDao.insert(Role(name = "Caregiver", description = "Family caregiver of a cancer patient"))

@@ -50,6 +50,9 @@ class SymptomRepository(
     suspend fun getLatestEntry(patientId: Long): Symptom? =
         symptomDao.getMostRecent(patientId)
 
+        suspend fun getRecentTrend(patientId: Long): List<Symptom> =
+        symptomDao.getRecentForTrend(patientId)
+
     suspend fun getSymptom(symptomId: Long): Symptom? =
         symptomDao.getById(symptomId)
 

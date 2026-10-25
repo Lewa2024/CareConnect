@@ -14,6 +14,9 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
     suspend fun getByEmail(email: String): User?
 
+    @Query("SELECT COUNT(*) FROM users WHERE roleId = :roleId")
+    suspend fun countByRole(roleId: Long): Int
+
     @Query("UPDATE users SET password = :newPasswordHash, salt = :newSalt WHERE email = :email")
     suspend fun updatePassword(email: String, newPasswordHash: String, newSalt: String): Int
 }

@@ -17,7 +17,8 @@ import com.strathmore.CareConnect.ui.components.AppLogo
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
-    onLoggedIn: (Long) -> Unit,
+   onCaregiverLoggedIn: (Long) -> Unit,
+    onAdminLoggedIn: (Long) -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
@@ -26,10 +27,17 @@ fun LoginScreen(
 
     val authState by viewModel.authState.collectAsState()
 
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
-            onLoggedIn((authState as AuthState.Success).caregiverId)
-            viewModel.resetState()
+           LaunchedEffect(authState) {
+        when (val state = authState) {
+            is AuthState.CaregiverSuccess -> {
+                onCaregiverLoggedIn(state.caregiverId)
+                viewModel.resetState()
+            }
+            is AuthState.AdminSuccess -> {
+                onAdminLoggedIn(state.userId)
+                viewModel.resetState()
+            }
+            else -> { /* no-op for Idle, Loading, Error */ }
         }
     }
 

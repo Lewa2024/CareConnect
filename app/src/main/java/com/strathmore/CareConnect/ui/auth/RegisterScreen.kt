@@ -30,13 +30,12 @@ fun RegisterScreen(
 
     val authState by viewModel.authState.collectAsState()
 
-    LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
-            onRegistered((authState as AuthState.Success).caregiverId)
+        LaunchedEffect(authState) {
+        if (authState is AuthState.CaregiverSuccess) {
+            onRegistered((authState as AuthState.CaregiverSuccess).caregiverId)
             viewModel.resetState()
         }
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()

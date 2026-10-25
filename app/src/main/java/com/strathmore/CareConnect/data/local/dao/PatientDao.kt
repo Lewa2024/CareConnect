@@ -18,6 +18,9 @@ interface PatientDao {
     @Query("SELECT * FROM patients WHERE patientId = :patientId")
     suspend fun getById(patientId: Long): Patient?
 
+    @Query("SELECT COUNT(*) FROM patients")
+    suspend fun countAll(): Int
+
     @Query("SELECT * FROM patients WHERE caregiverId = :caregiverId")
     fun getByCaregiver(caregiverId: Long): Flow<List<Patient>>
 }

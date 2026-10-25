@@ -1,8 +1,11 @@
 package com.strathmore.CareConnect.ui.alerts
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -10,13 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.data.local.entities.Notification
 import com.strathmore.CareConnect.ui.components.AppLogo
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -111,13 +113,14 @@ fun AlertsScreen(
 private fun AlertCard(alert: Notification, onClick: () -> Unit) {
     val isUrgent = alert.urgency == "URGENT"
     val accentColor = if (isUrgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
-    val formatter = remember { SimpleDateFormat("EEE, d MMM · h:mm a", Locale.US) }
+    val formatter = remember { SimpleDateFormat("EEE, d MMM \u00B7 h:mm a", Locale.US) }
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = if (alert.isRead) MaterialTheme.colorScheme.surface else accentColor.copy(alpha = 0.08f),
         tonalElevation = if (alert.isRead) 1.dp else 3.dp,
-        modifier = Modifier.fillMaxWidth().clickableWithoutRipple(onClick)
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -131,7 +134,7 @@ private fun AlertCard(alert: Notification, onClick: () -> Unit) {
                 Surface(color = accentColor, shape = RoundedCornerShape(20.dp)) {
                     Text(
                         alert.urgency,
-                        color = androidx.compose.ui.graphics.Color.White,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
@@ -142,7 +145,7 @@ private fun AlertCard(alert: Notification, onClick: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(accentColor, shape = androidx.compose.foundation.shape.CircleShape)
+                            .background(accentColor, shape = CircleShape)
                     )
                 }
             }
@@ -157,11 +160,3 @@ private fun AlertCard(alert: Notification, onClick: () -> Unit) {
         }
     }
 }
-
-@Composable
-private fun Modifier.clickableWithoutRipple(onClick: () -> Unit): Modifier =
-    this.then(androidx.compose.foundation.clickable(
-        onClick = onClick,
-        indication = null,
-        interactionSource = remember { MutableInteractionSource() }
-    ))

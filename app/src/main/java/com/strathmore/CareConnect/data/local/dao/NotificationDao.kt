@@ -17,4 +17,7 @@ interface NotificationDao {
 
     @Query("UPDATE notifications SET isRead = 1 WHERE notificationId = :notificationId")
     suspend fun markAsRead(notificationId: Long)
+
+        @Query("SELECT COUNT(*) FROM notifications WHERE urgency = :urgency")
+    suspend fun countByUrgency(urgency: String): Int
 }

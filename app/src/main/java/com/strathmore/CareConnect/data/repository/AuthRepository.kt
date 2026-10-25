@@ -57,6 +57,9 @@ class AuthRepository(
     suspend fun getCaregiverId(userId: Long): Long? =
         caregiverDao.getByUserId(userId)?.caregiverId
 
+        suspend fun getRoleName(roleId: Long): String? =
+        roleDao.getById(roleId)?.name
+
     suspend fun getUserForCaregiver(caregiverId: Long): User? {
         val caregiver = caregiverDao.getById(caregiverId) ?: return null
         return userDao.getById(caregiver.userId)

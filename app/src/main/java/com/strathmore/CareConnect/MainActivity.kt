@@ -27,6 +27,9 @@ import com.strathmore.CareConnect.ui.symptom.PainGuideScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
+import com.strathmore.CareConnect.ui.admin.AdminDashboardScreen
+import com.strathmore.CareConnect.ui.admin.DeletedSymptomsScreen
+import com.strathmore.CareConnect.ui.admin.ManageThresholdsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,10 +63,15 @@ private fun CareConnectNavHost() {
         }
     ) {
 
-        composable("login") {
+    composable("login") {
             LoginScreen(
-                onLoggedIn = { caregiverId ->
+                onCaregiverLoggedIn = { caregiverId ->
                     navController.navigate("home/$caregiverId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onAdminLoggedIn = { userId ->
+                    navController.navigate("admin_dashboard") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -105,7 +113,7 @@ private fun CareConnectNavHost() {
             arguments = listOf(navArgument("caregiverId") { type = NavType.LongType })
         ) { backStackEntry ->
             val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
-            HomeScreen(
+                         HomeScreen(
                 caregiverId = caregiverId,
                 onLogSymptoms = { patientId ->
                     navController.navigate("symptom_log/$caregiverId/$patientId")
@@ -125,10 +133,13 @@ private fun CareConnectNavHost() {
                 onViewAlerts = { patientId ->
                     navController.navigate("alerts/$caregiverId/$patientId")
                 },
+                onPainGuide = {
+                    navController.navigate("pain_guide")
+                },
                 onProfile = {
                     navController.navigate("profile/$caregiverId")
                 }
-            )
+            )         
         }
 
         composable(
@@ -262,6 +273,26 @@ private fun CareConnectNavHost() {
                 },
                 onComingSoon = { }
             )
+      
+        }
+            composable("admin_dashboard") {
+            AdminDashboardScreen(
+                onManageThresholds = { navController.navigate("manage_thresholds") },
+                onViewDeletedSymptoms = { navController.navigate("deleted_symptoms") },
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable("manage_thresholds") {
+            ManageThresholdsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("deleted_symptoms") {
+            DeletedSymptomsScreen(onBack = { navController.popBackStack() })
         }
     }
 }
