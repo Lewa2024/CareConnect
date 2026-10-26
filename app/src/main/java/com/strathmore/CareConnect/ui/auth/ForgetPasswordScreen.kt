@@ -15,6 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,14 +51,14 @@ fun ForgotPasswordScreen(
             )
         }
     ) { padding ->
-       Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .padding(padding)
-        .verticalScroll(rememberScrollState())   // <-- added
-        .padding(24.dp),
-    verticalArrangement = Arrangement.spacedBy(18.dp)
-) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(padding)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             Text("Reset Password", style = MaterialTheme.typography.headlineSmall)
             Text(
                 "Enter your account email and choose a new password.",

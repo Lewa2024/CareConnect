@@ -14,7 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.fgraphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +24,7 @@ import com.strathmore.CareConnect.ui.symptom.SymptomTrendChart
 import com.strathmore.CareConnect.ui.theme.Ice
 import com.strathmore.CareConnect.ui.theme.Navy
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +41,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel()
 ) {
     val patient by viewModel.patient.collectAsState()
+    val caregiverFirstName by viewModel.caregiverFirstName.collectAsState()
     val latestEntry by viewModel.latestEntry.collectAsState()
     val latestAlert by viewModel.latestAlert.collectAsState()
     val trend by viewModel.trend.collectAsState()
@@ -52,6 +54,14 @@ fun HomeScreen(
 
     fun showComingSoon(feature: String) {
         scope.launch { snackbarHostState.showSnackbar("$feature coming soon") }
+    }
+
+    val greeting = remember {
+        when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+            in 0..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            else -> "Good evening"
+        }
     }
 
     Scaffold(
@@ -112,26 +122,28 @@ fun HomeScreen(
                 .padding(20.dp)
         ) {
             Text(
-                "Good day",
-                style = MaterialTheme.typography.bodyMedium,
+                caregiverFirstName?.let { "$greeting, $it" } ?: greeting,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- Dark navy card: patient + latest entry snapshot ---
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = Navy,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    if (patient != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { onViewPatientDetails(patient!!.patientId) }
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+            // --- Dark navy card: patient + quick log button, or Add Patient pill ---
+            if (patient != null) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Navy,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onViewPatientDetails(patient!!.patientId) }
+                            ) {
                                 Text(
                                     "Caring for",
                                     style = MaterialTheme.typography.labelMedium,
@@ -147,6 +159,16 @@ fun HomeScreen(
                             IconButton(onClick = { onEditPatient(patient!!.patientId) }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit patient", tint = Color.White.copy(alpha = 0.85f))
                             }
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White,
+                                onClick = { onLogSymptoms(patient!!.patientId) },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Add, contentDescription = "Log symptom", tint = Navy, modifier = Modifier.size(20.dp))
+                                }
+                            }
                         }
 
                         if (latestEntry != null) {
@@ -159,21 +181,67 @@ fun HomeScreen(
                                 color = Color.White.copy(alpha = 0.9f)
                             )
                         }
-                    } else {
+                    }
+                }
+            } else {
+                ActionPillButton(
+                    title = "Add Patient",
+                    subtitle = "Register who you're caring for",
+                    onClick = onAddPatient
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // --- Alerts: kept near the top so nothing important gets missed ---
+            Text("Recent alerts", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val alert = latestAlert
+            if (alert == null) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Ice,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
                         Text(
-                            "No patient added yet",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            "No alerts yet. The rule engine checks every symptom you log.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = onAddPatient,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Navy),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Text("+ Add Patient")
+                    }
+                }
+            } else {
+                val isUrgent = alert.urgency == "URGENT"
+                val accentColor = if (isUrgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = accentColor.copy(alpha = 0.1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { patient?.let { onViewHistory(it.patientId) } }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(color = accentColor, shape = RoundedCornerShape(20.dp)) {
+                            Text(
+                                alert.urgency,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                            )
                         }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            alert.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -239,14 +307,6 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 ActionPillButton(
-                    title = "Log Symptoms",
-                    subtitle = "Record how ${patient!!.name} feels today",
-                    onClick = { onLogSymptoms(patient!!.patientId) }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                ActionPillButton(
                     title = "Find a Nurse",
                     subtitle = "Search nearby available nurses",
                     onClick = { showComingSoon("Nurse booking") }
@@ -254,60 +314,6 @@ fun HomeScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            Text("Recent alerts", fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
-
-            val alert = latestAlert
-            if (alert == null) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Ice,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            "No alerts yet. The rule engine checks every symptom you log.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                }
-            } else {
-                val isUrgent = alert.urgency == "URGENT"
-                val accentColor = if (isUrgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = accentColor.copy(alpha = 0.1f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { patient?.let { onViewHistory(it.patientId) } }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(color = accentColor, shape = RoundedCornerShape(20.dp)) {
-                            Text(
-                                alert.urgency,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            alert.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
 
             CancerFactCard()
 

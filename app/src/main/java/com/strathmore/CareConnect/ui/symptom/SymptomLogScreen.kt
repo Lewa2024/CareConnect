@@ -31,14 +31,13 @@ fun SymptomLogScreen(
     var dropdownExpanded by remember { mutableStateOf(false) }
     var rating by remember { mutableStateOf(5f) }
     var notes by remember { mutableStateOf("") }
-
+    var showQuickGuide by remember { mutableStateOf(false) }
     var showVitals by remember { mutableStateOf(false) }
     var weightText by remember { mutableStateOf("") }
     var systolicText by remember { mutableStateOf("") }
     var diastolicText by remember { mutableStateOf("") }
     var medicationTaken by remember { mutableStateOf<Boolean?>(null) }
     var surveyNote by remember { mutableStateOf("") }
-
     val saveState by viewModel.saveState.collectAsState()
 
     LaunchedEffect(caregiverId) {
@@ -121,11 +120,11 @@ fun SymptomLogScreen(
                             "Severity: ${rating.toInt()} / 10",
                             fontWeight = FontWeight.Bold
                         )
-                        TextButton(onClick = onPainGuide) {
+                        TextButton(onClick = { showQuickGuide = true }) {
                             Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Guide", style = MaterialTheme.typography.labelMedium)
-                        }
+                        }  
                     }
                     Slider(
                         value = rating,
@@ -135,6 +134,20 @@ fun SymptomLogScreen(
                     )
                 }
             }
+
+                    }
+    }
+
+    if (showQuickGuide) {
+        QuickPainGuideSheet(
+            onDismiss = { showQuickGuide = false },
+            onViewFullGuide = {
+                showQuickGuide = false
+                onPainGuide()
+            }
+        )
+    }
+}
 
             CareTextField(
                 value = notes,

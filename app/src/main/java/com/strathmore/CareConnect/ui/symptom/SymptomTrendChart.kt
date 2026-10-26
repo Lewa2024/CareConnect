@@ -11,9 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,9 +24,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * A labeled bar chart of recent symptom severity (1-10): each bar shows its exact
- * number and the date it was logged, so the caregiver doesn't have to interpret an
- * abstract line — the values are printed right on the chart.
+ * A line chart of recent symptom severity (1-10), with the exact number and log date
+ * drawn directly at each point, so the trend is both visually readable (the line's
+ * shape) and unambiguous (the actual numbers are printed on it).
  */
 @Composable
 fun SymptomTrendChart(recentEntries: List<Symptom>, modifier: Modifier = Modifier) {
@@ -41,13 +42,13 @@ fun SymptomTrendChart(recentEntries: List<Symptom>, modifier: Modifier = Modifie
             Text("Symptom Trend", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(2.dp))
 
-            if (entries.isEmpty()) {
+            if (entries.size < 2) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Log a symptom to see your trend here.",
+                        "Log at least 2 symptoms to see a trend here.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -58,59 +59,92 @@ fun SymptomTrendChart(recentEntries: List<Symptom>, modifier: Modifier = Modifie
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
+                val lineColor = MaterialTheme.colorScheme.secondary
+                val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f)
                 val lowColor = MaterialTheme.colorScheme.primary
                 val midColor = MaterialTheme.colorScheme.secondary
                 val highColor = MaterialTheme.colorScheme.error
-                val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
 
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(170.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(170.dp)
                 ) {
-                    entries.forEach { symptom ->
+                    val leftPad = 8f
+                    val rightPad = 8f
+                    val topPad = 36f   // room for the number printed above each point
+                    val bottomPad = 28f // room for the date printed below the axis
+                    val chartWidth = size.width - leftPad - rightPad
+                    val chartHeight = size.height - topPad - bottomPad
+
+                    listOf(1, 5, 10).forEach { gridValue ->
+                        val y = topPad + chartHeight - (gridValue / 10f) * chartHeight
+                        drawLine(
+                            color = gridColor,
+                            start = Offset(leftPad, y),
+                            end = Offset(size.width - rightPad, y),
+                            strokeWidth = 1.5f
+                        )
+                    }
+
+                    val stepX = chartWidth / (entries.size - 1)
+                    val points = entries.mapIndexed { index, symptom ->
+                        val x = leftPad + index * stepX
+                        val y = topPad + chartHeight - (symptom.rating / 10f) * chartHeight
+                        Offset(x, y)
+                    }
+
+                    for (i in 0 until points.size - 1) {
+                        drawLine(
+                            color = lineColor,
+                            start = points[i],
+                            end = points[i + 1],
+                            strokeWidth = 4f,
+                            cap = StrokeCap.Round
+                        )
+                    }
+
+                    entries.forEachIndexed { index, symptom ->
                         val color = when {
                             symptom.rating >= 8 -> highColor
                             symptom.rating >= 5 -> midColor
                             else -> lowColor
                         }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        ) {
-                            Text(
-                                "${symptom.rating}",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = color
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Canvas(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(0.5f)
-                            ) {
-                                val barHeight = size.height * (symptom.rating / 10f)
-                                drawRoundRect(
-                                    color = color,
-                                    topLeft = Offset(0f, size.height - barHeight),
-                                    size = Size(size.width, barHeight),
-                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
-                                )
+                        val point = points[index]
+
+                        drawCircle(color = color, radius = 8f, center = point)
+                        drawCircle(color = Color.White, radius = 3.5f, center = point)
+
+                        // Severity number, printed just above the point
+                        drawContext.canvas.nativeCanvas.apply {
+                            val numberPaint = android.graphics.Paint().apply {
+                                this.color = color.toArgb()
+                                textSize = 28f
+                                isFakeBoldText = true
+                                textAlign = android.graphics.Paint.Align.CENTER
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
+                            drawText("${symptom.rating}", point.x, point.y - 16f, numberPaint)
+
+                            // Date, printed at the bottom of the chart under this point
+                            val datePaint = android.graphics.Paint().apply {
+                                this.color = labelColor
+                                textSize = 20f
+                                textAlign = android.graphics.Paint.Align.CENTER
+                            }
+                            drawText(
                                 dateFormatter.format(Date(symptom.date)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = labelColor,
-                                fontSize = 9.sp
+                                point.x,
+                                size.height - 6f,
+                                datePaint
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
