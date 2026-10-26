@@ -13,11 +13,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.strathmore.CareConnect.ui.admin.AdminDashboardScreen
+import com.strathmore.CareConnect.ui.admin.DeletedSymptomsScreen
+import com.strathmore.CareConnect.ui.admin.ManageThresholdsScreen
 import com.strathmore.CareConnect.ui.alerts.AlertsScreen
 import com.strathmore.CareConnect.ui.auth.ForgotPasswordScreen
 import com.strathmore.CareConnect.ui.auth.LoginScreen
 import com.strathmore.CareConnect.ui.auth.RegisterScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
+import com.strathmore.CareConnect.ui.medication.AddMedicationScreen
+import com.strathmore.CareConnect.ui.medication.MedicationListScreen
 import com.strathmore.CareConnect.ui.patient.AddPatientScreen
 import com.strathmore.CareConnect.ui.patient.EditPatientScreen
 import com.strathmore.CareConnect.ui.patient.PatientDetailsScreen
@@ -27,9 +32,6 @@ import com.strathmore.CareConnect.ui.symptom.PainGuideScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
-import com.strathmore.CareConnect.ui.admin.AdminDashboardScreen
-import com.strathmore.CareConnect.ui.admin.DeletedSymptomsScreen
-import com.strathmore.CareConnect.ui.admin.ManageThresholdsScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +65,7 @@ private fun CareConnectNavHost() {
         }
     ) {
 
-    composable("login") {
+        composable("login") {
             LoginScreen(
                 onCaregiverLoggedIn = { caregiverId ->
                     navController.navigate("home/$caregiverId") {
@@ -113,7 +115,7 @@ private fun CareConnectNavHost() {
             arguments = listOf(navArgument("caregiverId") { type = NavType.LongType })
         ) { backStackEntry ->
             val caregiverId = backStackEntry.arguments?.getLong("caregiverId") ?: return@composable
-                         HomeScreen(
+            HomeScreen(
                 caregiverId = caregiverId,
                 onLogSymptoms = { patientId ->
                     navController.navigate("symptom_log/$caregiverId/$patientId")
@@ -139,7 +141,7 @@ private fun CareConnectNavHost() {
                 onProfile = {
                     navController.navigate("profile/$caregiverId")
                 }
-            )         
+            )
         }
 
         composable(
@@ -201,7 +203,32 @@ private fun CareConnectNavHost() {
             PatientDetailsScreen(
                 patientId = patientId,
                 onBack = { navController.popBackStack() },
-                onEdit = { id -> navController.navigate("edit_patient/$id") }
+                onEdit = { id -> navController.navigate("edit_patient/$id") },
+                onViewMedications = { id -> navController.navigate("medication_list/$id") }
+            )
+        }
+
+        composable(
+            route = "medication_list/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            MedicationListScreen(
+                patientId = patientId,
+                onBack = { navController.popBackStack() },
+                onAddMedication = { navController.navigate("add_medication/$patientId") }
+            )
+        }
+
+        composable(
+            route = "add_medication/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            AddMedicationScreen(
+                patientId = patientId,
+                onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -273,9 +300,9 @@ private fun CareConnectNavHost() {
                 },
                 onComingSoon = { }
             )
-      
         }
-            composable("admin_dashboard") {
+
+        composable("admin_dashboard") {
             AdminDashboardScreen(
                 onManageThresholds = { navController.navigate("manage_thresholds") },
                 onViewDeletedSymptoms = { navController.navigate("deleted_symptoms") },

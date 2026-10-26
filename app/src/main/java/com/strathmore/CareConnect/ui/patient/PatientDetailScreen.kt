@@ -1,17 +1,18 @@
 package com.strathmore.CareConnect.ui.patient
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 import java.text.SimpleDateFormat
@@ -24,6 +25,7 @@ fun PatientDetailsScreen(
     patientId: Long,
     onBack: () -> Unit,
     onEdit: (patientId: Long) -> Unit,
+    onViewMedications: (patientId: Long) -> Unit,
     viewModel: PatientViewModel = viewModel()
 ) {
     val patient by viewModel.viewingPatient.collectAsState()
@@ -64,7 +66,7 @@ fun PatientDetailsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .verticalScroll(rememberScrollState())   // <-- added
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -76,10 +78,30 @@ fun PatientDetailsScreen(
 
                 DetailCard(label = "Date of Birth", value = dobFormatter.format(Date(p.dateOfBirth)))
                 DetailCard(label = "Height", value = p.heightCm?.let { "$it cm" } ?: "Not recorded")
+                DetailCard(
+                    label = "Baseline Weight",
+                    value = p.baselineWeightKg?.let { "$it kg" } ?: "Not recorded"
+                )
+                DetailCard(
+                    label = "Baseline Blood Pressure",
+                    value = if (p.baselineSystolicBp != null && p.baselineDiastolicBp != null)
+                        "${p.baselineSystolicBp}/${p.baselineDiastolicBp}"
+                    else "Not recorded"
+                )
                 DetailCard(label = "Medical History", value = p.medicalHistory.ifBlank { "None recorded" })
-                DetailCard(label = "Current Medication", value = p.medication.ifBlank { "None recorded" })                  
-                
+                DetailCard(label = "Current Medication", value = p.medication.ifBlank { "None recorded" })
+
                 Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = { onViewMedications(patientId) },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Icon(Icons.Default.Medication, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Manage Medications")
+                }
 
                 OutlinedButton(
                     onClick = { onEdit(patientId) },

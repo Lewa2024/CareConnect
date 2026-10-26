@@ -260,7 +260,7 @@ fun EditSymptomScreen(
                     color = MaterialTheme.colorScheme.error
                 )
             }
-        }v
+        }
     }
 }
 
