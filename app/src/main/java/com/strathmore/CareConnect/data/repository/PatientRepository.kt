@@ -13,7 +13,10 @@ class PatientRepository(
         dateOfBirthMillis: Long,
         medicalHistory: String,
         medication: String,
-        heightCm: Double? = null
+        heightCm: Double? = null,
+        baselineWeightKg: Double? = null,
+        baselineSystolicBp: Int? = null,
+        baselineDiastolicBp: Int? = null
     ): Long {
         val patient = Patient(
             caregiverId = caregiverId,
@@ -21,7 +24,10 @@ class PatientRepository(
             dateOfBirth = dateOfBirthMillis,
             medicalHistory = medicalHistory.trim(),
             medication = medication.trim(),
-            heightCm = heightCm
+            heightCm = heightCm,
+            baselineWeightKg = baselineWeightKg,
+            baselineSystolicBp = baselineSystolicBp,
+            baselineDiastolicBp = baselineDiastolicBp
         )
         return patientDao.insert(patient)
     }
@@ -41,7 +47,10 @@ class PatientRepository(
         dateOfBirthMillis: Long,
         medicalHistory: String,
         medication: String,
-        heightCm: Double? = null
+        heightCm: Double? = null,
+        baselineWeightKg: Double? = null,
+        baselineSystolicBp: Int? = null,
+        baselineDiastolicBp: Int? = null
     ) {
         val existing = patientDao.getById(patientId)
             ?: throw IllegalStateException("Patient not found")
@@ -51,7 +60,10 @@ class PatientRepository(
                 dateOfBirth = dateOfBirthMillis,
                 medicalHistory = medicalHistory.trim(),
                 medication = medication.trim(),
-                heightCm = heightCm
+                heightCm = heightCm,
+                baselineWeightKg = baselineWeightKg,
+                baselineSystolicBp = baselineSystolicBp,
+                baselineDiastolicBp = baselineDiastolicBp
             )
         )
     }

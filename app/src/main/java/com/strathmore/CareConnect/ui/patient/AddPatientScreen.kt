@@ -1,13 +1,17 @@
 package com.strathmore.CareConnect.ui.patient
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
 import java.text.SimpleDateFormat
@@ -25,6 +29,9 @@ fun AddPatientScreen(
     var medicalHistory by remember { mutableStateOf("") }
     var medication by remember { mutableStateOf("") }
     var heightText by remember { mutableStateOf("") }
+    var weightText by remember { mutableStateOf("") }
+    var systolicText by remember { mutableStateOf("") }
+    var diastolicText by remember { mutableStateOf("") }
     var dateError by remember { mutableStateOf<String?>(null) }
 
     val saveState by viewModel.saveState.collectAsState()
@@ -41,14 +48,14 @@ fun AddPatientScreen(
             TopAppBar(title = { AppLogo() })
         }
     ) { padding ->
-       Column(
-    modifier = Modifier
-        .fillMaxSize()
-        .padding(padding)
-        .verticalScroll(rememberScrollState())   // <-- added
-        .padding(24.dp),
-    verticalArrangement = Arrangement.spacedBy(18.dp)
-) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
             Text(
                 "Add Patient",
                 style = MaterialTheme.typography.headlineSmall,
@@ -80,12 +87,10 @@ fun AddPatientScreen(
 
             OutlinedTextField(
                 value = heightText,
-                onValueChange = { heightText = it },
+                onValueChange = { input -> heightText = filterDecimalInput(input) },
                 label = { Text("Height (cm) — optional") },
                 singleLine = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
-                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -104,6 +109,52 @@ fun AddPatientScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            Text(
+                "Baseline vitals (optional)",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = weightText,
+                        onValueChange = { input -> weightText = filterDecimalInput(input) },
+                        label = { Text("Weight (kg)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = systolicText,
+                            onValueChange = { input -> systolicText = filterIntegerInput(input) },
+                            label = { Text("Blood Pressure: Higher number") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = diastolicText,
+                            onValueChange = { input -> diastolicText = filterIntegerInput(input) },
+                            label = { Text("Blood Pressure: Lower number") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(4.dp))
 
             Button(
@@ -113,8 +164,17 @@ fun AddPatientScreen(
                         dateError = "Enter a valid date as YYYY-MM-DD"
                         return@Button
                     }
-                    val height = heightText.trim().toDoubleOrNull()
-                    viewModel.addPatient(caregiverId, name, millis, medicalHistory, medication, height)
+                    viewModel.addPatient(
+                        caregiverId = caregiverId,
+                        name = name,
+                        dateOfBirthMillis = millis,
+                        medicalHistory = medicalHistory,
+                        medication = medication,
+                        heightCm = heightText.trim().toDoubleOrNull(),
+                        baselineWeightKg = weightText.trim().toDoubleOrNull(),
+                        baselineSystolicBp = systolicText.trim().toIntOrNull(),
+                        baselineDiastolicBp = diastolicText.trim().toIntOrNull()
+                    )
                 },
                 enabled = saveState !is PatientSaveState.Saving,
                 shape = MaterialTheme.shapes.medium,
@@ -141,4 +201,12 @@ private fun parseDateOrNull(text: String): Long? {
     } catch (e: Exception) {
         null
     }
+}
+
+private fun filterDecimalInput(input: String): String {
+    return input.filterIndexed { index, c -> c.isDigit() || (c == '.' && !input.take(index).contains('.')) }
+}
+
+private fun filterIntegerInput(input: String): String {
+    return input.filter { it.isDigit() }
 }

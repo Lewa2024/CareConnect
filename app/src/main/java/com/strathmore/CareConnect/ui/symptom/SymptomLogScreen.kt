@@ -124,7 +124,7 @@ fun SymptomLogScreen(
                             Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Guide", style = MaterialTheme.typography.labelMedium)
-                        }  
+                        }
                     }
                     Slider(
                         value = rating,
@@ -134,20 +134,6 @@ fun SymptomLogScreen(
                     )
                 }
             }
-
-                    }
-    }
-
-    if (showQuickGuide) {
-        QuickPainGuideSheet(
-            onDismiss = { showQuickGuide = false },
-            onViewFullGuide = {
-                showQuickGuide = false
-                onPainGuide()
-            }
-        )
-    }
-}
 
             CareTextField(
                 value = notes,
@@ -176,7 +162,7 @@ fun SymptomLogScreen(
                     ) {
                         CareTextField(
                             value = weightText,
-                            onValueChange = { weightText = it },
+                            onValueChange = { input -> weightText = filterDecimalInput(input) },
                             label = { Text("Weight (kg)") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -186,7 +172,7 @@ fun SymptomLogScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             CareTextField(
                                 value = systolicText,
-                                onValueChange = { systolicText = it },
+                                onValueChange = { input -> systolicText = filterIntegerInput(input) },
                                 label = { Text("Blood Pressure:High number") },
                                 supportingText = { Text("Systolic, e.g. 120") },
                                 singleLine = true,
@@ -195,7 +181,7 @@ fun SymptomLogScreen(
                             )
                             CareTextField(
                                 value = diastolicText,
-                                onValueChange = { diastolicText = it },
+                                onValueChange = { input -> diastolicText = filterIntegerInput(input) },
                                 label = { Text("Blood Pressure:Low number") },
                                 supportingText = { Text("Diastolic, e.g. 80") },
                                 singleLine = true,
@@ -262,4 +248,22 @@ fun SymptomLogScreen(
             }
         }
     }
+
+    if (showQuickGuide) {
+        QuickPainGuideSheet(
+            onDismiss = { showQuickGuide = false },
+            onViewFullGuide = {
+                showQuickGuide = false
+                onPainGuide()
+            }
+        )
+    }
+}
+
+private fun filterDecimalInput(input: String): String {
+    return input.filterIndexed { index, c -> c.isDigit() || (c == '.' && !input.take(index).contains('.')) }
+}
+
+private fun filterIntegerInput(input: String): String {
+    return input.filter { it.isDigit() }
 }

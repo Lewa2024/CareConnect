@@ -5,7 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.strathmore.CareConnect.data.local.dao.CaregiverDao
+import com.strathmore.CareConnect.data.local.dao.MedicationDao
+import com.strathmore.CareConnect.data.local.dao.MedicationTimeDao
 import com.strathmore.CareConnect.data.local.dao.NotificationDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
@@ -13,6 +17,8 @@ import com.strathmore.CareConnect.data.local.dao.RuleThresholdDao
 import com.strathmore.CareConnect.data.local.dao.SymptomDao
 import com.strathmore.CareConnect.data.local.dao.UserDao
 import com.strathmore.CareConnect.data.local.entities.Caregiver
+import com.strathmore.CareConnect.data.local.entities.Medication
+import com.strathmore.CareConnect.data.local.entities.MedicationTime
 import com.strathmore.CareConnect.data.local.entities.Notification
 import com.strathmore.CareConnect.data.local.entities.Patient
 import com.strathmore.CareConnect.data.local.entities.Role
@@ -31,9 +37,11 @@ import kotlinx.coroutines.launch
         Patient::class,
         Symptom::class,
         RuleThreshold::class,
-        Notification::class
+        Notification::class,
+        Medication::class,
+        MedicationTime::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,9 +54,48 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun symptomDao(): SymptomDao
     abstract fun ruleThresholdDao(): RuleThresholdDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun medicationDao(): MedicationDao
+    abstract fun medicationTimeDao(): MedicationTimeDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE patients ADD COLUMN baselineWeightKg REAL")
+                db.execSQL("ALTER TABLE patients ADD COLUMN baselineSystolicBp INTEGER")
+                db.execSQL("ALTER TABLE patients ADD COLUMN baselineDiastolicBp INTEGER")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS medications (
+                        medicationId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        patientId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        dosage TEXT NOT NULL,
+                        timesPerDay INTEGER NOT NULL,
+                        notes TEXT NOT NULL DEFAULT '',
+                        active INTEGER NOT NULL DEFAULT 1,
+                        FOREIGN KEY(patientId) REFERENCES patients(patientId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_medications_patientId ON medications(patientId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS medication_times (
+                        medicationTimeId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        medicationId INTEGER NOT NULL,
+                        hour INTEGER NOT NULL,
+                        minute INTEGER NOT NULL,
+                        FOREIGN KEY(medicationId) REFERENCES medications(medicationId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_medication_times_medicationId ON medication_times(medicationId)")
+            }
+        }
 
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
@@ -63,12 +110,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .build()
 
                 INSTANCE = instance
 
-                                CoroutineScope(Dispatchers.IO).launch {
+                CoroutineScope(Dispatchers.IO).launch {
                     seedRolesIfMissing(instance.roleDao())
                     seedDefaultThresholdIfMissing(instance.ruleThresholdDao())
                     seedDefaultAdminIfMissing(instance.roleDao(), instance.userDao())
@@ -89,17 +137,16 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             }
         }
-                private suspend fun seedDefaultAdminIfMissing(
+
+        private suspend fun seedDefaultAdminIfMissing(
             roleDao: RoleDao,
-            userDao: com.strathmore.CareConnect.data.local.dao.UserDao
+            userDao: UserDao
         ) {
             val existing = userDao.getByEmail("admin@careconnect.com")
             if (existing != null) return
 
             val adminRole = roleDao.getByName("Administrator") ?: return
 
-            // Default demo admin account. Password: Admin@123
-            // Salted with the same SHA-256(salt + password) scheme as AuthRepository.hash().
             val salt = java.security.SecureRandom().let { rnd ->
                 val bytes = ByteArray(16)
                 rnd.nextBytes(bytes)
@@ -110,7 +157,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .joinToString("") { "%02x".format(it) }
 
             userDao.insert(
-                com.strathmore.CareConnect.data.local.entities.User(
+                User(
                     roleId = adminRole.roleId,
                     firstName = "System",
                     lastName = "Administrator",
@@ -121,7 +168,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             )
         }
-        
+
         private suspend fun seedRolesIfMissing(roleDao: RoleDao) {
             if (roleDao.getByName("Caregiver") == null) {
                 roleDao.insert(Role(name = "Caregiver", description = "Family caregiver of a cancer patient"))

@@ -38,7 +38,10 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         dateOfBirthMillis: Long,
         medicalHistory: String,
         medication: String,
-        heightCm: Double?
+        heightCm: Double? = null,
+        baselineWeightKg: Double? = null,
+        baselineSystolicBp: Int? = null,
+        baselineDiastolicBp: Int? = null
     ) {
         if (name.isBlank()) {
             _saveState.value = PatientSaveState.Error("Please enter the patient's name")
@@ -48,7 +51,8 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
             _saveState.value = PatientSaveState.Saving
             try {
                 val patientId = repository.addPatient(
-                    caregiverId, name, dateOfBirthMillis, medicalHistory, medication, heightCm
+                    caregiverId, name, dateOfBirthMillis, medicalHistory, medication,
+                    heightCm, baselineWeightKg, baselineSystolicBp, baselineDiastolicBp
                 )
                 _saveState.value = PatientSaveState.Saved(patientId)
             } catch (e: Exception) {
@@ -91,7 +95,10 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         dateOfBirthMillis: Long,
         medicalHistory: String,
         medication: String,
-        heightCm: Double?
+        heightCm: Double? = null,
+        baselineWeightKg: Double? = null,
+        baselineSystolicBp: Int? = null,
+        baselineDiastolicBp: Int? = null
     ) {
         if (name.isBlank()) {
             _editState.value = EditState.Error("Name can't be empty")
@@ -100,7 +107,10 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             _editState.value = EditState.Saving
             try {
-                repository.updatePatient(patientId, name, dateOfBirthMillis, medicalHistory, medication, heightCm)
+                repository.updatePatient(
+                    patientId, name, dateOfBirthMillis, medicalHistory, medication,
+                    heightCm, baselineWeightKg, baselineSystolicBp, baselineDiastolicBp
+                )
                 _editState.value = EditState.Saved
             } catch (e: Exception) {
                 _editState.value = EditState.Error(e.message ?: "Failed to update patient")
