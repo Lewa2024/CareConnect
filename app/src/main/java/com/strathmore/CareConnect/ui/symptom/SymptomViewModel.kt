@@ -26,6 +26,9 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
     private val _saveState = MutableStateFlow<SaveState>(SaveState.Idle)
     val saveState: StateFlow<SaveState> = _saveState.asStateFlow()
 
+    private val _baseline = MutableStateFlow<Pair<Double, Int>?>(null)
+    val baseline: StateFlow<Pair<Double, Int>?> = _baseline.asStateFlow()
+
     fun loadPatients(caregiverId: Long) {
         viewModelScope.launch {
             repository.getPatientsForCaregiver(caregiverId).collect { list ->
@@ -69,6 +72,15 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
 
     fun resetSaveState() {
         _saveState.value = SaveState.Idle
+    }
+        fun loadBaseline(patientId: Long, type: String) {
+        if (type.isBlank() || type == "Other") {
+            _baseline.value = null
+            return
+        }
+        viewModelScope.launch {
+            _baseline.value = repository.getBaselineForType(patientId, type)
+        }
     }
 }
 

@@ -14,7 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.fgraphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -257,9 +257,9 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             VitalsSummaryCard(
-                weightKg = latestEntry?.weightKg,
-                systolicBp = latestEntry?.systolicBp,
-                diastolicBp = latestEntry?.diastolicBp,
+                weightKg = latestEntry?.weightKg ?: patient?.baselineWeightKg,
+                systolicBp = latestEntry?.systolicBp ?: patient?.baselineSystolicBp,
+                diastolicBp = latestEntry?.diastolicBp ?: patient?.baselineDiastolicBp,
                 medicationTaken = latestEntry?.medicationTaken
             )
 

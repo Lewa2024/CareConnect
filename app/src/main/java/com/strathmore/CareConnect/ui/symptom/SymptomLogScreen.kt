@@ -39,9 +39,14 @@ fun SymptomLogScreen(
     var medicationTaken by remember { mutableStateOf<Boolean?>(null) }
     var surveyNote by remember { mutableStateOf("") }
     val saveState by viewModel.saveState.collectAsState()
+    val baseline by viewModel.baseline.collectAsState()
 
     LaunchedEffect(caregiverId) {
         viewModel.loadPatients(caregiverId)
+    }
+
+    LaunchedEffect(selectedType) {
+        viewModel.loadBaseline(patientId, selectedType)
     }
 
     val effectiveType = if (selectedType == "Other") otherTypeText else selectedType
@@ -95,6 +100,22 @@ fun SymptomLogScreen(
                 }
             }
 
+            baseline?.let { (average, count) ->
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "$selectedType has typically been ${"%.1f".format(average)}/10 for this patient " +
+                            "(based on $count previous ${if (count == 1) "entry" else "entries"}).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
             if (selectedType == "Other") {
                 CareTextField(
                     value = otherTypeText,
@@ -142,7 +163,6 @@ fun SymptomLogScreen(
                 modifier = Modifier.fillMaxWidth().height(120.dp)
             )
 
-            // Optional vitals, collapsed by default to keep the core form short.
             TextButton(
                 onClick = { showVitals = !showVitals },
                 modifier = Modifier.fillMaxWidth()

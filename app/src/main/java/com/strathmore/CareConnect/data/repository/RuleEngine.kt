@@ -23,12 +23,13 @@ class RuleEngine(
     private val notificationDao: NotificationDao
 ) {
     companion object {
-        private const val RAPID_ESCALATION_POINTS = 3
+        private const val RAPID_ESCALATION_POINTS = 3       // a rise this big always counts, regardless of where it lands
+        private const val RAPID_ESCALATION_POINTS_MINOR = 2 // a smaller rise still counts if it lands high enough
+        private const val RAPID_ESCALATION_HIGH_FLOOR = 7   // "high enough" for the smaller-rise case
         private const val RAPID_ESCALATION_WINDOW_MILLIS = 24L * 60 * 60 * 1000
         private const val MULTI_SYMPTOM_MIN_TYPES = 2
         private const val PERSISTENCE_MIN_ENTRIES = 5
     }
-
     suspend fun ensureDefaultThresholdsSeeded() {
         if (ruleThresholdDao.getByMetric("Pain") == null) {
             ruleThresholdDao.insert(
@@ -73,8 +74,10 @@ class RuleEngine(
         return buildNotification(patientId, symptomId, message, urgency = "URGENT")
     }
 
-    // Rule 2 — Rapid Escalation: any symptom rises >= 3 points above its baseline
-    // within 24 hours (ROUTINE).
+        // Rule 2 — Rapid Escalation: fires when EITHER (a) a symptom rises >= 3 points
+    // above its baseline, OR (b) it rises >= 2 points AND lands at a high absolute
+    // severity (>= 7) — catching cases like a 6-to-8 jump that's a smaller rise but
+    // still ends up seriously high. Either way, must happen within 24 hours (ROUTINE).
     private suspend fun checkRule2RapidEscalation(patientId: Long, symptomId: Long, type: String): Notification? {
         val allEntries = symptomDao.getAllByType(patientId, type) // newest first
         if (allEntries.size < 2) return null
@@ -86,9 +89,12 @@ class RuleEngine(
         val rise = current.rating - baseline
         val withinWindow = (current.date - prior.first().date) <= RAPID_ESCALATION_WINDOW_MILLIS
 
-        if (rise < RAPID_ESCALATION_POINTS || !withinWindow) return null
+        val bigJump = rise >= RAPID_ESCALATION_POINTS
+        val smallerButHighJump = rise >= RAPID_ESCALATION_POINTS_MINOR && current.rating >= RAPID_ESCALATION_HIGH_FLOOR
 
-        val message = "Rule 2 (Rapid Escalation): $type rose from a baseline of ~${"%.1f".format(baseline)} " +
+        if ((!bigJump && !smallerButHighJump) || !withinWindow) return null
+
+        val message = "Rule 2 (Rapid Escalation): $type rose from a typical level of ~${"%.1f".format(baseline)} " +
             "to ${current.rating}/10 within 24 hours."
 
         return buildNotification(patientId, symptomId, message, urgency = "ROUTINE")

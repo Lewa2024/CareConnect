@@ -24,5 +24,8 @@ data class Patient(
     val dateOfBirth: Long,       // stored as epoch millis, converted via Converters
     val medicalHistory: String,
     val medication: String,
-    val heightCm: Double? = null   // baseline height in centimeters, optional
+    val heightCm: Double? = null,
+    val baselineWeightKg: Double? = null,
+    val baselineSystolicBp: Int? = null,
+    val baselineDiastolicBp: Int? = null
 )

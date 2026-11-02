@@ -50,7 +50,14 @@ class SymptomRepository(
     suspend fun getLatestEntry(patientId: Long): Symptom? =
         symptomDao.getMostRecent(patientId)
 
-        suspend fun getRecentTrend(patientId: Long): List<Symptom> =
+        /** Returns (average severity, count of prior entries) for a symptom type, or null if none logged yet. */
+    suspend fun getBaselineForType(patientId: Long, type: String): Pair<Double, Int>? {
+        val entries = symptomDao.getAllByType(patientId, type)
+        if (entries.isEmpty()) return null
+        return entries.map { it.rating }.average() to entries.size
+    }
+
+    suspend fun getRecentTrend(patientId: Long): List<Symptom> =
         symptomDao.getRecentForTrend(patientId)
 
     suspend fun getSymptom(symptomId: Long): Symptom? =

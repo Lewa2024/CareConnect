@@ -25,5 +25,6 @@ data class User(
     val email: String,
     val password: String,   // salted hash, never plaintext
     val salt: String,       // unique per user, generated at registration
-    val phoneNumber: String
+    val phoneNumber: String,
+    val active: Boolean = true // false = deactivated by an Administrator
 )

@@ -24,5 +24,6 @@ data class Notification(
     val urgency: String,       // "ROUTINE" or "URGENT"
     val timestamp: Long,
     val isRead: Boolean = false,
-    val triggeringSymptomId: Long? = null  // which Symptom entry caused this, if applicable
+    val triggeringSymptomId: Long? = null,  // which Symptom entry caused this, if applicable
+    val ruleNumber: Int? = null // 1-4, which rule produced this notification
 )
