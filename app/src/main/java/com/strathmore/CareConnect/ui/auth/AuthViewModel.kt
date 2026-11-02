@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.strathmore.CareConnect.CareConnectApp
 import com.strathmore.CareConnect.data.repository.AuthRepository
+import com.strathmore.CareConnect.data.repository.LoginResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,26 +64,31 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            val user = repository.login(email, password)
-            if (user == null) {
-                _authState.value = AuthState.Error("Invalid email or password")
-                return@launch
-            }
-
-            when (repository.getRoleName(user.roleId)) {
-                "Administrator" -> {
-                    _authState.value = AuthState.AdminSuccess(user.userId)
+            when (val result = repository.login(email, password)) {
+                is LoginResult.InvalidCredentials -> {
+                    _authState.value = AuthState.Error("Invalid email or password")
                 }
-                "Caregiver" -> {
-                    val caregiverId = repository.getCaregiverId(user.userId)
-                    if (caregiverId == null) {
-                        _authState.value = AuthState.Error("Caregiver profile not found for this account")
-                    } else {
-                        _authState.value = AuthState.CaregiverSuccess(caregiverId)
+                is LoginResult.AccountDeactivated -> {
+                    _authState.value = AuthState.Error("This account has been deactivated. Contact an administrator.")
+                }
+                is LoginResult.Success -> {
+                    val user = result.user
+                    when (repository.getRoleName(user.roleId)) {
+                        "Administrator" -> {
+                            _authState.value = AuthState.AdminSuccess(user.userId)
+                        }
+                        "Caregiver" -> {
+                            val caregiverId = repository.getCaregiverId(user.userId)
+                            if (caregiverId == null) {
+                                _authState.value = AuthState.Error("Caregiver profile not found for this account")
+                            } else {
+                                _authState.value = AuthState.CaregiverSuccess(caregiverId)
+                            }
+                        }
+                        else -> {
+                            _authState.value = AuthState.Error("This account type isn't supported yet")
+                        }
                     }
-                }
-                else -> {
-                    _authState.value = AuthState.Error("This account type isn't supported yet")
                 }
             }
         }

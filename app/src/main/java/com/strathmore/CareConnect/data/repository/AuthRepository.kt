@@ -8,6 +8,12 @@ import com.strathmore.CareConnect.data.local.entities.User
 import java.security.MessageDigest
 import java.security.SecureRandom
 
+sealed class LoginResult {
+    data class Success(val user: User) : LoginResult()
+    data object InvalidCredentials : LoginResult()
+    data object AccountDeactivated : LoginResult()
+}
+
 class AuthRepository(
     private val userDao: UserDao,
     private val roleDao: RoleDao,
@@ -47,17 +53,19 @@ class AuthRepository(
         return userId
     }
 
-    /** Returns the logged-in User, or null if the email/password don't match. */
-    suspend fun login(email: String, password: String): User? {
-        val user = userDao.getByEmail(email.trim().lowercase()) ?: return null
+    /** Verifies credentials and account status. */
+    suspend fun login(email: String, password: String): LoginResult {
+        val user = userDao.getByEmail(email.trim().lowercase()) ?: return LoginResult.InvalidCredentials
         val attemptedHash = hash(password, user.salt)
-        return if (attemptedHash == user.password) user else null
+        if (attemptedHash != user.password) return LoginResult.InvalidCredentials
+        if (!user.active) return LoginResult.AccountDeactivated
+        return LoginResult.Success(user)
     }
 
     suspend fun getCaregiverId(userId: Long): Long? =
         caregiverDao.getByUserId(userId)?.caregiverId
 
-        suspend fun getRoleName(roleId: Long): String? =
+    suspend fun getRoleName(roleId: Long): String? =
         roleDao.getById(roleId)?.name
 
     suspend fun getUserForCaregiver(caregiverId: Long): User? {
