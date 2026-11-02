@@ -71,7 +71,7 @@ class RuleEngine(
             "Rule 1 (Absolute Threshold): $type was logged at ${threshold.thresholdValue}/10 or higher."
         }
 
-        return buildNotification(patientId, symptomId, message, urgency = "URGENT")
+                return buildNotification(patientId, symptomId, message, urgency = "URGENT", ruleNumber = 1)
     }
 
         // Rule 2 — Rapid Escalation: fires when EITHER (a) a symptom rises >= 3 points
@@ -121,7 +121,7 @@ class RuleEngine(
         val message = "Rule 3 (Multi-Symptom): ${typesAboveBaseline.size} symptoms " +
             "(${typesAboveBaseline.joinToString(", ")}) are currently above their individual baselines."
 
-        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE")
+        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE", ruleNumber=2)
     }
 
     // Rule 4 — Persistence: a symptom has stayed above its baseline for 5 or more
@@ -140,15 +140,16 @@ class RuleEngine(
         val message = "Rule 4 (Persistence): $type has remained above its baseline of " +
             "~${"%.1f".format(baseline)} for the last $PERSISTENCE_MIN_ENTRIES entries."
 
-        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE")
+        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE", ruleNumber=4)
     }
 
-    private fun buildNotification(patientId: Long, symptomId: Long, message: String, urgency: String) =
+        private fun buildNotification(patientId: Long, symptomId: Long, message: String, urgency: String, ruleNumber: Int) =
         Notification(
             patientId = patientId,
             message = message,
             urgency = urgency,
             timestamp = System.currentTimeMillis(),
-            triggeringSymptomId = symptomId
+            triggeringSymptomId = symptomId,
+            ruleNumber = ruleNumber
         )
 }

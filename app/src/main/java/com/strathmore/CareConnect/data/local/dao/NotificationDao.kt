@@ -4,6 +4,11 @@ import androidx.room.*
 import com.strathmore.CareConnect.data.local.entities.Notification
 import kotlinx.coroutines.flow.Flow
 
+data class RuleFiringCount(
+    val ruleNumber: Int,
+    val count: Int
+)
+
 @Dao
 interface NotificationDao {
     @Insert
@@ -18,6 +23,15 @@ interface NotificationDao {
     @Query("UPDATE notifications SET isRead = 1 WHERE notificationId = :notificationId")
     suspend fun markAsRead(notificationId: Long)
 
-        @Query("SELECT COUNT(*) FROM notifications WHERE urgency = :urgency")
+    @Query("SELECT COUNT(*) FROM notifications WHERE urgency = :urgency")
     suspend fun countByUrgency(urgency: String): Int
+
+    @Query("""
+        SELECT ruleNumber AS ruleNumber, COUNT(*) AS count
+        FROM notifications
+        WHERE ruleNumber IS NOT NULL
+        GROUP BY ruleNumber
+        ORDER BY ruleNumber ASC
+    """)
+    suspend fun getRuleFiringCounts(): List<RuleFiringCount>
 }

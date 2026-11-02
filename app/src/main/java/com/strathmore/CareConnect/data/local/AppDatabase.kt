@@ -41,7 +41,7 @@ import kotlinx.coroutines.launch
         Medication::class,
         MedicationTime::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -97,6 +97,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE notifications ADD COLUMN ruleNumber INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing
@@ -110,7 +117,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration()
                     .build()
 
