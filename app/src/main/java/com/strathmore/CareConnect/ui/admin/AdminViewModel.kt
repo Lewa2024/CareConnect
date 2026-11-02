@@ -46,6 +46,12 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     private val _deletionLog = MutableStateFlow<List<DeletionLogEntry>>(emptyList())
     val deletionLog: StateFlow<List<DeletionLogEntry>> = _deletionLog.asStateFlow()
 
+    private val _caregivers = MutableStateFlow<List<CaregiverDirectoryEntry>>(emptyList())
+    val caregivers: StateFlow<List<CaregiverDirectoryEntry>> = _caregivers.asStateFlow()
+
+    private val _ruleFiringCounts = MutableStateFlow<List<RuleFiringCount>>(emptyList())
+    val ruleFiringCounts: StateFlow<List<RuleFiringCount>> = _ruleFiringCounts.asStateFlow()
+
     fun loadThresholds() {
         viewModelScope.launch {
             ruleThresholdDao.getAllFlow().collect { list ->
@@ -111,6 +117,13 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 routineAlerts = notificationDao.countByUrgency("ROUTINE")
             )
         }
+        loadRuleFiringCounts()
+    }
+
+    private fun loadRuleFiringCounts() {
+        viewModelScope.launch {
+            _ruleFiringCounts.value = notificationDao.getRuleFiringCounts()
+        }
     }
 
     fun loadDeletionLog() {
@@ -123,8 +136,75 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-}
 
+    fun loadCaregiverDirectory() {
+        viewModelScope.launch {
+            userDao.getCaregiverDirectory().collect { list ->
+                _caregivers.value = list
+            }
+        }
+    }
+
+       fun setCaregiverActive(userId: Long, active: Boolean) {
+        viewModelScope.launch {
+            userDao.setActive(userId, active)
+        }
+    }
+
+    private val _adminUser = MutableStateFlow<com.strathmore.CareConnect.data.local.entities.User?>(null)
+    val adminUser: StateFlow<com.strathmore.CareConnect.data.local.entities.User?> = _adminUser.asStateFlow()
+
+    private val _passwordChangeState = MutableStateFlow<AdminSaveState>(AdminSaveState.Idle)
+    val passwordChangeState: StateFlow<AdminSaveState> = _passwordChangeState.asStateFlow()
+
+    fun loadAdminProfile(userId: Long) {
+        viewModelScope.launch {
+            _adminUser.value = userDao.getById(userId)
+        }
+    }
+
+    fun changeAdminPassword(currentPassword: String, newPassword: String) {
+        val admin = _adminUser.value
+        if (admin == null) {
+            _passwordChangeState.value = AdminSaveState.Error("Account not loaded")
+            return
+        }
+        if (newPassword.length < 6) {
+            _passwordChangeState.value = AdminSaveState.Error("New password must be at least 6 characters")
+            return
+        }
+        viewModelScope.launch {
+            _passwordChangeState.value = AdminSaveState.Saving
+            try {
+                val currentHash = hash(currentPassword, admin.salt)
+                if (currentHash != admin.password) {
+                    _passwordChangeState.value = AdminSaveState.Error("Current password is incorrect")
+                    return@launch
+                }
+                val newSalt = generateSalt()
+                userDao.updatePassword(admin.email, hash(newPassword, newSalt), newSalt)
+                _passwordChangeState.value = AdminSaveState.Saved
+            } catch (e: Exception) {
+                _passwordChangeState.value = AdminSaveState.Error(e.message ?: "Failed to change password")
+            }
+        }
+    }
+
+    fun resetPasswordChangeState() {
+        _passwordChangeState.value = AdminSaveState.Idle
+    }
+
+    private fun generateSalt(): String {
+        val saltBytes = ByteArray(16)
+        java.security.SecureRandom().nextBytes(saltBytes)
+        return saltBytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun hash(raw: String, salt: String): String {
+        val bytes = java.security.MessageDigest.getInstance("SHA-256").digest((salt + raw).toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+}
 sealed class AdminSaveState {
     data object Idle : AdminSaveState()
     data object Saving : AdminSaveState()

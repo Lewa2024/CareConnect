@@ -17,6 +17,8 @@ import com.strathmore.CareConnect.ui.components.AppLogo
 fun AdminDashboardScreen(
     onManageThresholds: () -> Unit,
     onViewDeletedSymptoms: () -> Unit,
+    onViewSystemOverview: () -> Unit,
+    onViewCaregivers: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -52,6 +54,20 @@ fun AdminDashboardScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             AdminActionCard(
+                icon = Icons.Default.Assessment,
+                title = "System Overview",
+                description = "Aggregate usage stats and which alert rules are firing most often.",
+                onClick = onViewSystemOverview
+            )
+
+            AdminActionCard(
+                icon = Icons.Default.People,
+                title = "Caregivers",
+                description = "View registered caregiver accounts and deactivate or reactivate access.",
+                onClick = onViewCaregivers
+            )
+
+            AdminActionCard(
                 icon = Icons.Default.Tune,
                 title = "Manage Rule Thresholds",
                 description = "View, edit, and add the severity rules the alert engine checks every symptom against.",
@@ -60,8 +76,8 @@ fun AdminDashboardScreen(
 
             AdminActionCard(
                 icon = Icons.Default.History,
-                title = "View Deleted Symptoms",
-                description = "An audit trail of every symptom entry that caregivers have removed, including when it was deleted.",
+                title = "Deletion Audit Log",
+                description = "A privacy-safe record of when symptom entries were deleted, for traceability.",
                 onClick = onViewDeletedSymptoms
             )
         }

@@ -14,8 +14,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.strathmore.CareConnect.ui.admin.AdminDashboardScreen
+import com.strathmore.CareConnect.ui.admin.CaregiverDirectoryScreen
 import com.strathmore.CareConnect.ui.admin.DeletedSymptomsScreen
 import com.strathmore.CareConnect.ui.admin.ManageThresholdsScreen
+import com.strathmore.CareConnect.ui.admin.SystemOverviewScreen
 import com.strathmore.CareConnect.ui.alerts.AlertsScreen
 import com.strathmore.CareConnect.ui.auth.ForgotPasswordScreen
 import com.strathmore.CareConnect.ui.auth.LoginScreen
@@ -306,6 +308,8 @@ private fun CareConnectNavHost() {
             AdminDashboardScreen(
                 onManageThresholds = { navController.navigate("manage_thresholds") },
                 onViewDeletedSymptoms = { navController.navigate("deleted_symptoms") },
+                onViewSystemOverview = { navController.navigate("system_overview") },
+                onViewCaregivers = { navController.navigate("caregiver_directory") },
                 onLogout = {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
@@ -320,6 +324,14 @@ private fun CareConnectNavHost() {
 
         composable("deleted_symptoms") {
             DeletedSymptomsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("system_overview") {
+            SystemOverviewScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable("caregiver_directory") {
+            CaregiverDirectoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

@@ -97,7 +97,7 @@ class RuleEngine(
         val message = "Rule 2 (Rapid Escalation): $type rose from a typical level of ~${"%.1f".format(baseline)} " +
             "to ${current.rating}/10 within 24 hours."
 
-        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE")
+        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE", ruleNumber = 2)
     }
 
     // Rule 3 — Multi-Symptom: two or more symptom types are currently above their
@@ -121,7 +121,7 @@ class RuleEngine(
         val message = "Rule 3 (Multi-Symptom): ${typesAboveBaseline.size} symptoms " +
             "(${typesAboveBaseline.joinToString(", ")}) are currently above their individual baselines."
 
-        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE", ruleNumber=2)
+        return buildNotification(patientId, symptomId, message, urgency = "ROUTINE", ruleNumber = 3)
     }
 
     // Rule 4 — Persistence: a symptom has stayed above its baseline for 5 or more

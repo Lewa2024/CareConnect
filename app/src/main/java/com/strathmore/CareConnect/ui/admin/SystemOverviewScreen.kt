@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.strathmore.CareConnect.data.local.dao.RuleFiringCount
 import com.strathmore.CareConnect.ui.components.AppLogo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,6 +22,7 @@ fun SystemOverviewScreen(
     viewModel: AdminViewModel = viewModel()
 ) {
     val stats by viewModel.stats.collectAsState()
+    val ruleFiringCounts by viewModel.ruleFiringCounts.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.loadSystemStats()
@@ -132,8 +134,60 @@ fun SystemOverviewScreen(
                         )
                     }
                 }
+
+                if (ruleFiringCounts.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Which Rules Are Firing", fontWeight = FontWeight.Bold)
+
+                    val ruleNames = mapOf(
+                        1 to "Rule 1 \u2014 Absolute Threshold",
+                        2 to "Rule 2 \u2014 Rapid Escalation",
+                        3 to "Rule 3 \u2014 Multi-Symptom",
+                        4 to "Rule 4 \u2014 Persistence"
+                    )
+                    val maxCount = ruleFiringCounts.maxOf { it.count }
+
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            ruleFiringCounts.forEach { entry ->
+                                RuleFiringRow(
+                                    label = ruleNames[entry.ruleNumber] ?: "Rule ${entry.ruleNumber}",
+                                    count = entry.count,
+                                    maxCount = maxCount
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun RuleFiringRow(label: String, count: Int, maxCount: Int) {
+    Column {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(label, style = MaterialTheme.typography.bodySmall)
+            Text("$count", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = { if (maxCount > 0) count.toFloat() / maxCount else 0f },
+            modifier = Modifier.fillMaxWidth().height(6.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        )
     }
 }
 
