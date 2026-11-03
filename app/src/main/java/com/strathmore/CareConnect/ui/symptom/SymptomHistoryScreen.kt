@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,10 +30,13 @@ fun SymptomHistoryScreen(
     viewModel: SymptomHistoryViewModel = viewModel()
 ) {
     val history by viewModel.history.collectAsState()
+    val deletedHistory by viewModel.deletedHistory.collectAsState()
     var symptomPendingDelete by remember { mutableStateOf<Symptom?>(null) }
+    var showDeleted by remember { mutableStateOf(false) }
 
     LaunchedEffect(patientId) {
         viewModel.loadHistory(patientId)
+        viewModel.loadDeletedHistory(patientId)
     }
 
     Scaffold(
@@ -52,13 +56,33 @@ fun SymptomHistoryScreen(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
 
-            if (history.isEmpty()) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = !showDeleted,
+                    onClick = { showDeleted = false },
+                    label = { Text("Active (${history.size})") }
+                )
+                FilterChip(
+                    selected = showDeleted,
+                    onClick = { showDeleted = true },
+                    label = { Text("Deleted (${deletedHistory.size})") }
+                )
+            }
+
+            val listToShow = if (showDeleted) deletedHistory else history
+
+            if (listToShow.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "No symptoms logged yet.",
+                        if (showDeleted) "No deleted entries." else "No symptoms logged yet.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -70,12 +94,19 @@ fun SymptomHistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
-                    items(history, key = { it.symptomId }) { symptom ->
-                        SymptomHistoryCard(
-                            symptom = symptom,
-                            onEditClick = { onEditSymptom(symptom.symptomId) },
-                            onDeleteClick = { symptomPendingDelete = symptom }
-                        )
+                    items(listToShow, key = { it.symptomId }) { symptom ->
+                        if (showDeleted) {
+                            DeletedSymptomCard(
+                                symptom = symptom,
+                                onRestoreClick = { viewModel.restoreSymptom(symptom.symptomId) }
+                            )
+                        } else {
+                            SymptomHistoryCard(
+                                symptom = symptom,
+                                onEditClick = { onEditSymptom(symptom.symptomId) },
+                                onDeleteClick = { symptomPendingDelete = symptom }
+                            )
+                        }
                     }
                 }
             }
@@ -86,7 +117,7 @@ fun SymptomHistoryScreen(
         AlertDialog(
             onDismissRequest = { symptomPendingDelete = null },
             title = { Text("Delete this entry?") },
-            text = { Text("This will remove the \"${symptom.type}\" entry from your history.") },
+            text = { Text("This will remove the \"${symptom.type}\" entry from your history. You can restore it later from the Deleted tab.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -171,6 +202,55 @@ private fun SymptomHistoryCard(
             if (symptom.notes.isNotBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(symptom.notes, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeletedSymptomCard(
+    symptom: Symptom,
+    onRestoreClick: () -> Unit
+) {
+    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy \u00B7 h:mm a", Locale.US) }
+
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(symptom.type, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Severity was ${symptom.rating}/10",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(onClick = onRestoreClick) {
+                    Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Restore")
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Logged: ${formatter.format(Date(symptom.date))}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            symptom.deletedAt?.let {
+                Text(
+                    "Deleted: ${formatter.format(Date(it))}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

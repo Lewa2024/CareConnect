@@ -23,6 +23,9 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
     private val _history = MutableStateFlow<List<Symptom>>(emptyList())
     val history: StateFlow<List<Symptom>> = _history.asStateFlow()
 
+    private val _deletedHistory = MutableStateFlow<List<Symptom>>(emptyList())
+    val deletedHistory: StateFlow<List<Symptom>> = _deletedHistory.asStateFlow()
+
     private val _editingSymptom = MutableStateFlow<Symptom?>(null)
     val editingSymptom: StateFlow<Symptom?> = _editingSymptom.asStateFlow()
 
@@ -37,9 +40,23 @@ class SymptomHistoryViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
+    fun loadDeletedHistory(patientId: Long) {
+        viewModelScope.launch {
+            repository.getDeletedHistory(patientId).collect { list ->
+                _deletedHistory.value = list
+            }
+        }
+    }
+
     fun deleteSymptom(symptomId: Long) {
         viewModelScope.launch {
             repository.deleteSymptom(symptomId)
+        }
+    }
+
+    fun restoreSymptom(symptomId: Long) {
+        viewModelScope.launch {
+            repository.restoreSymptom(symptomId)
         }
     }
 

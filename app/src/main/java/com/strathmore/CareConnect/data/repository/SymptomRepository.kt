@@ -97,6 +97,13 @@ class SymptomRepository(
         symptomDao.softDelete(symptomId, System.currentTimeMillis())
     }
 
+    suspend fun restoreSymptom(symptomId: Long) {
+        symptomDao.restore(symptomId)
+    }
+
+    fun getDeletedHistory(patientId: Long): Flow<List<Symptom>> =
+        symptomDao.getDeletedForPatient(patientId)
+
     fun getPatientsForCaregiver(caregiverId: Long): Flow<List<Patient>> =
         patientDao.getByCaregiver(caregiverId)
 }

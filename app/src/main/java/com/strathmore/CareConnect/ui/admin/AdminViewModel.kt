@@ -40,11 +40,10 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     private val _stats = MutableStateFlow<SystemStats?>(null)
     val stats: StateFlow<SystemStats?> = _stats.asStateFlow()
 
-    // Privacy-safe: only the deletion timestamps, never the patient or symptom content.
-    data class DeletionLogEntry(val deletedAt: Long)
-
-    private val _deletionLog = MutableStateFlow<List<DeletionLogEntry>>(emptyList())
-    val deletionLog: StateFlow<List<DeletionLogEntry>> = _deletionLog.asStateFlow()
+    // Shows patient name + symptom type only — never severity or notes — so an Admin
+    // can identify and restore an entry without seeing the actual health content.
+    private val _deletionLog = MutableStateFlow<List<AdminDeletionLogEntry>>(emptyList())
+    val deletionLog: StateFlow<List<AdminDeletionLogEntry>> = _deletionLog.asStateFlow()
 
     private val _caregivers = MutableStateFlow<List<CaregiverDirectoryEntry>>(emptyList())
     val caregivers: StateFlow<List<CaregiverDirectoryEntry>> = _caregivers.asStateFlow()
@@ -128,12 +127,15 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadDeletionLog() {
         viewModelScope.launch {
-            symptomDao.getAllDeletedSymptoms().collect { deleted ->
-                _deletionLog.value = deleted
-                    .mapNotNull { it.deletedAt }
-                    .sortedDescending()
-                    .map { DeletionLogEntry(it) }
+            symptomDao.getDeletionLogWithDetails().collect { list ->
+                _deletionLog.value = list
             }
+        }
+    }
+
+    fun restoreSymptom(symptomId: Long) {
+        viewModelScope.launch {
+            symptomDao.restore(symptomId)
         }
     }
 
@@ -145,7 +147,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-       fun setCaregiverActive(userId: Long, active: Boolean) {
+    fun setCaregiverActive(userId: Long, active: Boolean) {
         viewModelScope.launch {
             userDao.setActive(userId, active)
         }

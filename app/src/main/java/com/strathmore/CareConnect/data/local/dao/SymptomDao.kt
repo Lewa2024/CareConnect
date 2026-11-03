@@ -4,6 +4,14 @@ import androidx.room.*
 import com.strathmore.CareConnect.data.local.entities.Symptom
 import kotlinx.coroutines.flow.Flow
 
+data class AdminDeletionLogEntry(
+    val symptomId: Long,
+    val patientName: String,
+    val type: String,
+    val loggedAt: Long,
+    val deletedAt: Long?
+)
+
 @Dao
 interface SymptomDao {
     @Insert
@@ -21,7 +29,7 @@ interface SymptomDao {
     @Query("UPDATE symptoms SET status = 'DELETED', deletedAt = :deletedAt WHERE symptomId = :symptomId")
     suspend fun softDelete(symptomId: Long, deletedAt: Long)
 
-        @Query("UPDATE symptoms SET status = 'ACTIVE', deletedAt = NULL WHERE symptomId = :symptomId")
+    @Query("UPDATE symptoms SET status = 'ACTIVE', deletedAt = NULL WHERE symptomId = :symptomId")
     suspend fun restore(symptomId: Long)
 
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'DELETED' ORDER BY deletedAt DESC")
@@ -34,6 +42,16 @@ interface SymptomDao {
     @Query("SELECT * FROM symptoms WHERE status = 'DELETED' ORDER BY deletedAt DESC")
     fun getAllDeletedSymptoms(): Flow<List<Symptom>>
 
+    @Query("""
+        SELECT s.symptomId AS symptomId, p.name AS patientName, s.type AS type,
+               s.date AS loggedAt, s.deletedAt AS deletedAt
+        FROM symptoms s
+        INNER JOIN patients p ON p.patientId = s.patientId
+        WHERE s.status = 'DELETED'
+        ORDER BY s.deletedAt DESC
+    """)
+    fun getDeletionLogWithDetails(): Flow<List<AdminDeletionLogEntry>>
+
     @Query("SELECT COUNT(*) FROM symptoms WHERE status = 'ACTIVE'")
     suspend fun countActive(): Int
 
@@ -44,13 +62,13 @@ interface SymptomDao {
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' AND rating >= :minRating AND date >= :sinceDate")
     suspend fun getSevereSymptoms(patientId: Long, minRating: Int, sinceDate: Long): List<Symptom>
 
-     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 1")
+    @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 1")
     suspend fun getMostRecent(patientId: Long): Symptom?
 
-        @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 10")
+    @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' ORDER BY date DESC LIMIT 10")
     suspend fun getRecentForTrend(patientId: Long): List<Symptom>
 
-     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND type = :type AND status = 'ACTIVE' ORDER BY date DESC LIMIT :limit")
+    @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND type = :type AND status = 'ACTIVE' ORDER BY date DESC LIMIT :limit")
     suspend fun getRecentByType(patientId: Long, type: String, limit: Int): List<Symptom>
 
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND type = :type AND status = 'ACTIVE' ORDER BY date DESC")

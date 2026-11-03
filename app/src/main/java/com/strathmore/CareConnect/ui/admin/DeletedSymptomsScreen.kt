@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.strathmore.CareConnect.data.local.dao.AdminDeletionLogEntry
 import com.strathmore.CareConnect.ui.components.AppLogo
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -26,6 +27,7 @@ fun DeletedSymptomsScreen(
     viewModel: AdminViewModel = viewModel()
 ) {
     val deletionLog by viewModel.deletionLog.collectAsState()
+    var pendingRestore by remember { mutableStateOf<AdminDeletionLogEntry?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadDeletionLog()
@@ -51,9 +53,9 @@ fun DeletedSymptomsScreen(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
             Text(
-                "A record that entries were deleted, and when \u2014 for traceability only. " +
-                    "Patient names and symptom details are not shown here to protect patient privacy; " +
-                    "the underlying data is still kept in the database.",
+                "Symptom entries caregivers have removed. Shown here: which patient and " +
+                    "what type of symptom, so you can restore one if needed \u2014 severity and " +
+                    "notes are never shown to protect patient privacy.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp)
@@ -61,60 +63,94 @@ fun DeletedSymptomsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            if (deletionLog.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        "No deletions recorded yet.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(32.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 20.dp)
                 ) {
-                    Icon(Icons.Default.DeleteSweep, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            "${deletionLog.size}",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                        Text(
-                            "total entries deleted system-wide",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                    items(deletionLog, key = { it.symptomId }) { entry ->
+                        DeletionLogCard(
+                            entry = entry,
+                            onRestoreClick = { pendingRestore = entry }
                         )
                     }
                 }
             }
+        }
+    }
 
-            Spacer(modifier = Modifier.height(16.dp))
+    pendingRestore?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            title = { Text("Restore this entry?") },
+            text = {
+                Text(
+                    "This will restore the \"${entry.type}\" entry for ${entry.patientName} " +
+                        "back into their active symptom history."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.restoreSymptom(entry.symptomId)
+                    pendingRestore = null
+                }) {
+                    Text("Restore")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestore = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
 
-            if (deletionLog.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No deletions recorded yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+@Composable
+private fun DeletionLogCard(entry: AdminDeletionLogEntry, onRestoreClick: () -> Unit) {
+    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy \u00B7 h:mm a", Locale.US) }
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text("${entry.type} \u2014 ${entry.patientName}", fontWeight = FontWeight.Bold)
                 }
-            } else {
-                val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy \u00B7 h:mm a", Locale.US) }
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 20.dp)
-                ) {
-                    items(deletionLog) { entry ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                "Entry deleted \u2014 ${formatter.format(Date(entry.deletedAt))}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(14.dp)
-                            )
-                        }
-                    }
+                OutlinedButton(onClick = onRestoreClick) {
+                    Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Restore")
                 }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "Logged: ${formatter.format(Date(entry.loggedAt))}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            entry.deletedAt?.let {
+                Text(
+                    "Deleted: ${formatter.format(Date(it))}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
