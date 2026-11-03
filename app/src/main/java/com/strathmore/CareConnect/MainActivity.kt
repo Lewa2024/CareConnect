@@ -26,6 +26,9 @@ import com.strathmore.CareConnect.ui.auth.RegisterScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
 import com.strathmore.CareConnect.ui.medication.AddMedicationScreen
 import com.strathmore.CareConnect.ui.medication.MedicationListScreen
+import com.strathmore.CareConnect.ui.nurse.FindNurseScreen
+import com.strathmore.CareConnect.ui.nurse.NurseHomeScreen
+import com.strathmore.CareConnect.ui.nurse.RequestBookingScreen
 import com.strathmore.CareConnect.ui.patient.AddPatientScreen
 import com.strathmore.CareConnect.ui.patient.EditPatientScreen
 import com.strathmore.CareConnect.ui.patient.PatientDetailsScreen
@@ -80,6 +83,11 @@ private fun CareConnectNavHost() {
                         popUpTo("login") { inclusive = true }
                     }
                 },
+                onNurseLoggedIn = { nurseId ->
+                    navController.navigate("nurse_home/$nurseId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
                 onNavigateToRegister = {
                     navController.navigate("register")
                 },
@@ -91,8 +99,13 @@ private fun CareConnectNavHost() {
 
         composable("register") {
             RegisterScreen(
-                onRegistered = { caregiverId ->
+                onCaregiverRegistered = { caregiverId ->
                     navController.navigate("home/$caregiverId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNurseRegistered = { nurseId ->
+                    navController.navigate("nurse_home/$nurseId") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -140,6 +153,9 @@ private fun CareConnectNavHost() {
                 },
                 onPainGuide = {
                     navController.navigate("pain_guide")
+                },
+                onFindNurse = { patientId ->
+                    navController.navigate("find_nurse/$patientId")
                 },
                 onProfile = {
                     navController.navigate("profile/$caregiverId")
@@ -302,6 +318,54 @@ private fun CareConnectNavHost() {
                     navController.navigate("profile/$caregiverId")
                 },
                 onComingSoon = { }
+            )
+        }
+
+        composable(
+            route = "find_nurse/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            FindNurseScreen(
+                patientId = patientId,
+                onBack = { navController.popBackStack() },
+                onBookNurse = { nurseId ->
+                    navController.navigate("request_booking/$patientId/$nurseId")
+                }
+            )
+        }
+
+        composable(
+            route = "request_booking/{patientId}/{nurseId}",
+            arguments = listOf(
+                navArgument("patientId") { type = NavType.LongType },
+                navArgument("nurseId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            val nurseId = backStackEntry.arguments?.getLong("nurseId") ?: return@composable
+            RequestBookingScreen(
+                patientId = patientId,
+                nurseId = nurseId,
+                onBack = { navController.popBackStack() },
+                onRequested = {
+                    navController.popBackStack("find_nurse/$patientId", inclusive = true)
+                }
+            )
+        }
+
+        composable(
+            route = "nurse_home/{nurseId}",
+            arguments = listOf(navArgument("nurseId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val nurseId = backStackEntry.arguments?.getLong("nurseId") ?: return@composable
+            NurseHomeScreen(
+                nurseId = nurseId,
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 

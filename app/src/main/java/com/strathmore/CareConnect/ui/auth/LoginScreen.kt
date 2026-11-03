@@ -17,8 +17,9 @@ import com.strathmore.CareConnect.ui.components.AppLogo
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
-   onCaregiverLoggedIn: (Long) -> Unit,
+    onCaregiverLoggedIn: (Long) -> Unit,
     onAdminLoggedIn: (Long) -> Unit,
+    onNurseLoggedIn: (Long) -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
@@ -27,7 +28,7 @@ fun LoginScreen(
 
     val authState by viewModel.authState.collectAsState()
 
-           LaunchedEffect(authState) {
+    LaunchedEffect(authState) {
         when (val state = authState) {
             is AuthState.CaregiverSuccess -> {
                 onCaregiverLoggedIn(state.caregiverId)
@@ -35,6 +36,10 @@ fun LoginScreen(
             }
             is AuthState.AdminSuccess -> {
                 onAdminLoggedIn(state.userId)
+                viewModel.resetState()
+            }
+            is AuthState.NurseSuccess -> {
+                onNurseLoggedIn(state.nurseId)
                 viewModel.resetState()
             }
             else -> { /* no-op for Idle, Loading, Error */ }
@@ -107,7 +112,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-               Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Don't have an account?",
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -115,6 +120,6 @@ fun LoginScreen(
             TextButton(onClick = onNavigateToRegister) {
                 Text("Register", fontWeight = FontWeight.Bold)
             }
-            } 
         }
     }
+}

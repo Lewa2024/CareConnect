@@ -17,7 +17,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         val db = (application as CareConnectApp).database
-        repository = AuthRepository(db.userDao(), db.roleDao(), db.caregiverDao())
+        repository = AuthRepository(db.userDao(), db.roleDao(), db.caregiverDao(), db.nurseDao(), db.locationDao())
     }
 
     private val _user = MutableStateFlow<User?>(null)

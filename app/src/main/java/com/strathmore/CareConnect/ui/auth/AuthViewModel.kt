@@ -17,7 +17,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         val db = (application as CareConnectApp).database
-        repository = AuthRepository(db.userDao(), db.roleDao(), db.caregiverDao())
+        repository = AuthRepository(db.userDao(), db.roleDao(), db.caregiverDao(), db.nurseDao(), db.locationDao())
     }
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
@@ -57,6 +57,42 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun registerNurse(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        phoneNumber: String,
+        qualification: String,
+        city: String,
+        latitude: Double,
+        longitude: Double
+    ) {
+        if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank() || qualification.isBlank()) {
+            _authState.value = AuthState.Error("Please fill in all required fields")
+            return
+        }
+        if (password.length < 6) {
+            _authState.value = AuthState.Error("Password must be at least 6 characters")
+            return
+        }
+        if (city.isBlank()) {
+            _authState.value = AuthState.Error("Please share your location so caregivers can find you")
+            return
+        }
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                val nurseId = repository.registerNurse(
+                    firstName, lastName, email, password, phoneNumber, qualification, city, latitude, longitude
+                )
+                _authState.value = AuthState.NurseSuccess(nurseId)
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error(e.message ?: "Registration failed")
+            }
+        }
+    }
+
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             _authState.value = AuthState.Error("Please enter email and password")
@@ -83,6 +119,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                                 _authState.value = AuthState.Error("Caregiver profile not found for this account")
                             } else {
                                 _authState.value = AuthState.CaregiverSuccess(caregiverId)
+                            }
+                        }
+                        "Nurse" -> {
+                            val nurseId = repository.getNurseId(user.userId)
+                            if (nurseId == null) {
+                                _authState.value = AuthState.Error("Nurse profile not found for this account")
+                            } else {
+                                _authState.value = AuthState.NurseSuccess(nurseId)
                             }
                         }
                         else -> {
@@ -128,6 +172,7 @@ sealed class AuthState {
     data object Loading : AuthState()
     data class CaregiverSuccess(val caregiverId: Long) : AuthState()
     data class AdminSuccess(val userId: Long) : AuthState()
+    data class NurseSuccess(val nurseId: Long) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 

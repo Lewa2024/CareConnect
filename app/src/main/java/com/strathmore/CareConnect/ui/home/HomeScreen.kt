@@ -37,6 +37,7 @@ fun HomeScreen(
     onViewPatientDetails: (patientId: Long) -> Unit,
     onViewAlerts: (patientId: Long) -> Unit,
     onPainGuide: () -> Unit,
+    onFindNurse: (patientId: Long) -> Unit,
     onProfile: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -95,7 +96,7 @@ fun HomeScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { showComingSoon("Nurse booking") },
+                    onClick = { patient?.let { onFindNurse(it.patientId) } ?: showComingSoon("Add a patient first") },
                     icon = { Icon(Icons.Default.LocalHospital, contentDescription = "Book") },
                     label = { Text("Book") }
                 )
@@ -299,7 +300,7 @@ fun HomeScreen(
                 QuickAccessItem(
                     icon = Icons.Default.LocalHospital,
                     label = "Find a\nNurse",
-                    onClick = { showComingSoon("Nurse booking") }
+                    onClick = { patient?.let { onFindNurse(it.patientId) } ?: showComingSoon("Add a patient first") }
                 )
             }
 
@@ -309,7 +310,7 @@ fun HomeScreen(
                 ActionPillButton(
                     title = "Find a Nurse",
                     subtitle = "Search nearby available nurses",
-                    onClick = { showComingSoon("Nurse booking") }
+                    onClick = { onFindNurse(patient!!.patientId) }
                 )
             }
 

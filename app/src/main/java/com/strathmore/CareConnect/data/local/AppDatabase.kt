@@ -7,19 +7,25 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.strathmore.CareConnect.data.local.dao.BookingDao
 import com.strathmore.CareConnect.data.local.dao.CaregiverDao
+import com.strathmore.CareConnect.data.local.dao.LocationDao
 import com.strathmore.CareConnect.data.local.dao.MedicationDao
 import com.strathmore.CareConnect.data.local.dao.MedicationTimeDao
 import com.strathmore.CareConnect.data.local.dao.NotificationDao
+import com.strathmore.CareConnect.data.local.dao.NurseDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
 import com.strathmore.CareConnect.data.local.dao.RuleThresholdDao
 import com.strathmore.CareConnect.data.local.dao.SymptomDao
 import com.strathmore.CareConnect.data.local.dao.UserDao
+import com.strathmore.CareConnect.data.local.entities.Booking
 import com.strathmore.CareConnect.data.local.entities.Caregiver
+import com.strathmore.CareConnect.data.local.entities.Location
 import com.strathmore.CareConnect.data.local.entities.Medication
 import com.strathmore.CareConnect.data.local.entities.MedicationTime
 import com.strathmore.CareConnect.data.local.entities.Notification
+import com.strathmore.CareConnect.data.local.entities.Nurse
 import com.strathmore.CareConnect.data.local.entities.Patient
 import com.strathmore.CareConnect.data.local.entities.Role
 import com.strathmore.CareConnect.data.local.entities.RuleThreshold
@@ -39,9 +45,12 @@ import kotlinx.coroutines.launch
         RuleThreshold::class,
         Notification::class,
         Medication::class,
-        MedicationTime::class
+        MedicationTime::class,
+        Nurse::class,
+        Location::class,
+        Booking::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -56,6 +65,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun medicationDao(): MedicationDao
     abstract fun medicationTimeDao(): MedicationTimeDao
+    abstract fun nurseDao(): NurseDao
+    abstract fun locationDao(): LocationDao
+    abstract fun bookingDao(): BookingDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -104,6 +116,50 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS nurses (
+                        nurseId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        userId INTEGER NOT NULL,
+                        qualification TEXT NOT NULL,
+                        available INTEGER NOT NULL DEFAULT 1,
+                        verified INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY(userId) REFERENCES users(userId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_nurses_userId ON nurses(userId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS locations (
+                        locationId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        nurseId INTEGER NOT NULL,
+                        city TEXT NOT NULL,
+                        latitude REAL NOT NULL,
+                        longitude REAL NOT NULL,
+                        FOREIGN KEY(nurseId) REFERENCES nurses(nurseId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_locations_nurseId ON locations(nurseId)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS bookings (
+                        bookingId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        patientId INTEGER NOT NULL,
+                        nurseId INTEGER NOT NULL,
+                        requestedAt INTEGER NOT NULL,
+                        requestedVisitTime INTEGER NOT NULL,
+                        notes TEXT NOT NULL DEFAULT '',
+                        status TEXT NOT NULL DEFAULT 'PENDING',
+                        FOREIGN KEY(patientId) REFERENCES patients(patientId) ON DELETE CASCADE,
+                        FOREIGN KEY(nurseId) REFERENCES nurses(nurseId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_bookings_patientId ON bookings(patientId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_bookings_nurseId ON bookings(nurseId)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing
@@ -117,7 +173,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                     .fallbackToDestructiveMigration()
                     .build()
 

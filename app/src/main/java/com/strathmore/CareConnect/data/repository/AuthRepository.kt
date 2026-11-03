@@ -1,9 +1,13 @@
 package com.strathmore.CareConnect.data.repository
 
 import com.strathmore.CareConnect.data.local.dao.CaregiverDao
+import com.strathmore.CareConnect.data.local.dao.LocationDao
+import com.strathmore.CareConnect.data.local.dao.NurseDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
 import com.strathmore.CareConnect.data.local.dao.UserDao
 import com.strathmore.CareConnect.data.local.entities.Caregiver
+import com.strathmore.CareConnect.data.local.entities.Location
+import com.strathmore.CareConnect.data.local.entities.Nurse
 import com.strathmore.CareConnect.data.local.entities.User
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -17,7 +21,9 @@ sealed class LoginResult {
 class AuthRepository(
     private val userDao: UserDao,
     private val roleDao: RoleDao,
-    private val caregiverDao: CaregiverDao
+    private val caregiverDao: CaregiverDao,
+    private val nurseDao: NurseDao,
+    private val locationDao: LocationDao
 ) {
     /** Registers a new Caregiver account. Returns the new userId, or throws with a message on failure. */
     suspend fun registerCaregiver(
@@ -52,6 +58,60 @@ class AuthRepository(
 
         return userId
     }
+
+    /** Registers a new Nurse account with a location. Returns the new nurseId. */
+    suspend fun registerNurse(
+        firstName: String,
+        lastName: String,
+        email: String,
+        password: String,
+        phoneNumber: String,
+        qualification: String,
+        city: String,
+        latitude: Double,
+        longitude: Double
+    ): Long {
+        val existing = userDao.getByEmail(email.trim().lowercase())
+        if (existing != null) {
+            throw IllegalStateException("An account with this email already exists")
+        }
+
+        val nurseRole = roleDao.getByName("Nurse")
+            ?: throw IllegalStateException("Nurse role not found — is the database seeded?")
+
+        val salt = generateSalt()
+        val user = User(
+            roleId = nurseRole.roleId,
+            firstName = firstName.trim(),
+            lastName = lastName.trim(),
+            email = email.trim().lowercase(),
+            password = hash(password, salt),
+            salt = salt,
+            phoneNumber = phoneNumber.trim()
+        )
+        val userId = userDao.insert(user)
+
+        val nurseId = nurseDao.insert(
+            Nurse(
+                userId = userId,
+                qualification = qualification.trim()
+            )
+        )
+
+        locationDao.insert(
+            Location(
+                nurseId = nurseId,
+                city = city.trim(),
+                latitude = latitude,
+                longitude = longitude
+            )
+        )
+
+        return nurseId
+    }
+
+    suspend fun getNurseId(userId: Long): Long? =
+        nurseDao.getByUserId(userId)?.nurseId
 
     /** Verifies credentials and account status. */
     suspend fun login(email: String, password: String): LoginResult {
