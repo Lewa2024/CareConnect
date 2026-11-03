@@ -21,6 +21,12 @@ interface SymptomDao {
     @Query("UPDATE symptoms SET status = 'DELETED', deletedAt = :deletedAt WHERE symptomId = :symptomId")
     suspend fun softDelete(symptomId: Long, deletedAt: Long)
 
+        @Query("UPDATE symptoms SET status = 'ACTIVE', deletedAt = NULL WHERE symptomId = :symptomId")
+    suspend fun restore(symptomId: Long)
+
+    @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'DELETED' ORDER BY deletedAt DESC")
+    fun getDeletedForPatient(patientId: Long): Flow<List<Symptom>>
+
     // Admin-facing / audit query: every entry including soft-deleted ones, for traceability.
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId ORDER BY date DESC")
     fun getFullHistoryIncludingDeleted(patientId: Long): Flow<List<Symptom>>

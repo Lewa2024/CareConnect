@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.strathmore.CareConnect.ui.admin.AdminDashboardScreen
+import com.strathmore.CareConnect.ui.admin.AdminProfileScreen
 import com.strathmore.CareConnect.ui.admin.CaregiverDirectoryScreen
 import com.strathmore.CareConnect.ui.admin.DeletedSymptomsScreen
 import com.strathmore.CareConnect.ui.admin.ManageThresholdsScreen
@@ -75,7 +76,7 @@ private fun CareConnectNavHost() {
                     }
                 },
                 onAdminLoggedIn = { userId ->
-                    navController.navigate("admin_dashboard") {
+                    navController.navigate("admin_dashboard/$userId") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -304,12 +305,33 @@ private fun CareConnectNavHost() {
             )
         }
 
-        composable("admin_dashboard") {
+        composable(
+            route = "admin_dashboard/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId") ?: return@composable
             AdminDashboardScreen(
                 onManageThresholds = { navController.navigate("manage_thresholds") },
                 onViewDeletedSymptoms = { navController.navigate("deleted_symptoms") },
                 onViewSystemOverview = { navController.navigate("system_overview") },
                 onViewCaregivers = { navController.navigate("caregiver_directory") },
+                onViewProfile = { navController.navigate("admin_profile/$userId") },
+                onLogout = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = "admin_profile/{userId}",
+            arguments = listOf(navArgument("userId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId") ?: return@composable
+            AdminProfileScreen(
+                adminUserId = userId,
+                onBack = { navController.popBackStack() },
                 onLogout = {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }

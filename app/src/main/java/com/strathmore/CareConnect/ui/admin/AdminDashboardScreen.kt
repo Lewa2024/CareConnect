@@ -19,6 +19,7 @@ fun AdminDashboardScreen(
     onViewDeletedSymptoms: () -> Unit,
     onViewSystemOverview: () -> Unit,
     onViewCaregivers: () -> Unit,
+    onViewProfile: () -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -74,11 +75,18 @@ fun AdminDashboardScreen(
                 onClick = onManageThresholds
             )
 
-            AdminActionCard(
+                       AdminActionCard(
                 icon = Icons.Default.History,
                 title = "Deletion Audit Log",
                 description = "A privacy-safe record of when symptom entries were deleted, for traceability.",
                 onClick = onViewDeletedSymptoms
+            )
+
+            AdminActionCard(
+                icon = Icons.Default.AccountCircle,
+                title = "My Profile",
+                description = "View your admin account details and change your password.",
+                onClick = onViewProfile
             )
         }
     }
