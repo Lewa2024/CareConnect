@@ -6,7 +6,8 @@ import com.strathmore.CareConnect.data.local.entities.Booking
 import kotlinx.coroutines.flow.Flow
 
 class BookingRepository(
-    private val bookingDao: BookingDao
+    private val bookingDao: BookingDao,
+    private val postVisitNoteDao: com.strathmore.CareConnect.data.local.dao.PostVisitNoteDao
 ) {
     suspend fun requestBooking(
         patientId: Long,
@@ -37,4 +38,21 @@ class BookingRepository(
     suspend fun markCompleted(bookingId: Long) {
         bookingDao.updateStatus(bookingId, "COMPLETED")
     }
+
+        suspend fun hasAcceptedBooking(nurseId: Long, patientId: Long): Boolean =
+        postVisitNoteDao.hasAcceptedBooking(nurseId, patientId) > 0
+
+    suspend fun addPostVisitNote(bookingId: Long, patientId: Long, nurseId: Long, note: String) {
+        postVisitNoteDao.insert(
+            com.strathmore.CareConnect.data.local.entities.PostVisitNote(
+                bookingId = bookingId,
+                patientId = patientId,
+                nurseId = nurseId,
+                note = note.trim(),
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    fun getNotesForPatient(patientId: Long) = postVisitNoteDao.getNotesForPatient(patientId)
 }

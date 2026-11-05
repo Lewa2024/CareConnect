@@ -15,6 +15,7 @@ import com.strathmore.CareConnect.data.local.dao.MedicationTimeDao
 import com.strathmore.CareConnect.data.local.dao.NotificationDao
 import com.strathmore.CareConnect.data.local.dao.NurseDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
+import com.strathmore.CareConnect.data.local.dao.PostVisitNoteDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
 import com.strathmore.CareConnect.data.local.dao.RuleThresholdDao
 import com.strathmore.CareConnect.data.local.dao.SymptomDao
@@ -27,6 +28,7 @@ import com.strathmore.CareConnect.data.local.entities.MedicationTime
 import com.strathmore.CareConnect.data.local.entities.Notification
 import com.strathmore.CareConnect.data.local.entities.Nurse
 import com.strathmore.CareConnect.data.local.entities.Patient
+import com.strathmore.CareConnect.data.local.entities.PostVisitNote
 import com.strathmore.CareConnect.data.local.entities.Role
 import com.strathmore.CareConnect.data.local.entities.RuleThreshold
 import com.strathmore.CareConnect.data.local.entities.Symptom
@@ -48,9 +50,10 @@ import kotlinx.coroutines.launch
         MedicationTime::class,
         Nurse::class,
         Location::class,
-        Booking::class
+        Booking::class,
+        PostVisitNote::class
     ],
-    version = 10,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -68,6 +71,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun nurseDao(): NurseDao
     abstract fun locationDao(): LocationDao
     abstract fun bookingDao(): BookingDao
+    abstract fun postVisitNoteDao(): PostVisitNoteDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -160,6 +164,66 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS post_visit_notes (
+                        noteId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        bookingId INTEGER NOT NULL,
+                        patientId INTEGER NOT NULL,
+                        nurseId INTEGER NOT NULL,
+                        note TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(bookingId) REFERENCES bookings(bookingId) ON DELETE CASCADE,
+                        FOREIGN KEY(patientId) REFERENCES patients(patientId) ON DELETE CASCADE,
+                        FOREIGN KEY(nurseId) REFERENCES nurses(nurseId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_post_visit_notes_bookingId ON post_visit_notes(bookingId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_post_visit_notes_patientId ON post_visit_notes(patientId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_post_visit_notes_nurseId ON post_visit_notes(nurseId)")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE patients_new (
+                        patientId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        caregiverId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        dateOfBirth INTEGER NOT NULL,
+                        sex TEXT NOT NULL DEFAULT '',
+                        chiefComplaint TEXT NOT NULL DEFAULT '',
+                        historyOfIllness TEXT NOT NULL DEFAULT '',
+                        pastMedicalHistory TEXT NOT NULL DEFAULT '',
+                        surgicalHistory TEXT NOT NULL DEFAULT '',
+                        familyHistory TEXT NOT NULL DEFAULT '',
+                        currentPlan TEXT NOT NULL DEFAULT '',
+                        heightCm REAL,
+                        baselineWeightKg REAL,
+                        baselineSystolicBp INTEGER,
+                        baselineDiastolicBp INTEGER,
+                        FOREIGN KEY(caregiverId) REFERENCES caregivers(caregiverId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+
+                db.execSQL("""
+                    INSERT INTO patients_new (
+                        patientId, caregiverId, name, dateOfBirth, pastMedicalHistory,
+                        heightCm, baselineWeightKg, baselineSystolicBp, baselineDiastolicBp
+                    )
+                    SELECT patientId, caregiverId, name, dateOfBirth, medicalHistory,
+                           heightCm, baselineWeightKg, baselineSystolicBp, baselineDiastolicBp
+                    FROM patients
+                """.trimIndent())
+
+                db.execSQL("DROP TABLE patients")
+                db.execSQL("ALTER TABLE patients_new RENAME TO patients")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_patients_caregiverId ON patients(caregiverId)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing
@@ -173,7 +237,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                     .fallbackToDestructiveMigration()
                     .build()
 

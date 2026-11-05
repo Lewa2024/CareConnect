@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.strathmore.CareConnect.CareConnectApp
 import com.strathmore.CareConnect.data.local.dao.BookingWithNames
+import com.strathmore.CareConnect.data.local.dao.PostVisitNoteWithNurse
 import com.strathmore.CareConnect.data.repository.BookingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,7 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         val db = (application as CareConnectApp).database
-        repository = BookingRepository(db.bookingDao())
+        repository = BookingRepository(db.bookingDao(), db.postVisitNoteDao())
     }
 
     private val _bookings = MutableStateFlow<List<BookingWithNames>>(emptyList())
@@ -25,6 +26,15 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
 
     private val _requestState = MutableStateFlow<BookingRequestState>(BookingRequestState.Idle)
     val requestState: StateFlow<BookingRequestState> = _requestState.asStateFlow()
+
+    private val _notes = MutableStateFlow<List<PostVisitNoteWithNurse>>(emptyList())
+    val notes: StateFlow<List<PostVisitNoteWithNurse>> = _notes.asStateFlow()
+
+    private val _noteSaveState = MutableStateFlow<BookingRequestState>(BookingRequestState.Idle)
+    val noteSaveState: StateFlow<BookingRequestState> = _noteSaveState.asStateFlow()
+
+    private val _hasAccess = MutableStateFlow(false)
+    val hasAccess: StateFlow<Boolean> = _hasAccess.asStateFlow()
 
     fun requestBooking(patientId: Long, nurseId: Long, requestedVisitTime: Long, notes: String) {
         if (requestedVisitTime <= System.currentTimeMillis()) {
@@ -61,6 +71,44 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
     fun respondToBooking(bookingId: Long, accept: Boolean) {
         viewModelScope.launch {
             repository.respondToBooking(bookingId, accept)
+        }
+    }
+
+    fun markCompleted(bookingId: Long) {
+        viewModelScope.launch {
+            repository.markCompleted(bookingId)
+        }
+    }
+
+    fun checkAccess(nurseId: Long, patientId: Long) {
+        viewModelScope.launch {
+            _hasAccess.value = repository.hasAcceptedBooking(nurseId, patientId)
+        }
+    }
+
+    fun addPostVisitNote(bookingId: Long, patientId: Long, nurseId: Long, note: String) {
+        if (note.isBlank()) {
+            _noteSaveState.value = BookingRequestState.Error("Please write something before saving")
+            return
+        }
+        viewModelScope.launch {
+            _noteSaveState.value = BookingRequestState.Saving
+            try {
+                repository.addPostVisitNote(bookingId, patientId, nurseId, note)
+                _noteSaveState.value = BookingRequestState.Saved
+            } catch (e: Exception) {
+                _noteSaveState.value = BookingRequestState.Error(e.message ?: "Failed to save note")
+            }
+        }
+    }
+
+    fun resetNoteSaveState() {
+        _noteSaveState.value = BookingRequestState.Idle
+    }
+
+    fun loadNotesForPatient(patientId: Long) {
+        viewModelScope.launch {
+            repository.getNotesForPatient(patientId).collect { _notes.value = it }
         }
     }
 }

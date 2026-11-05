@@ -21,9 +21,14 @@ data class Patient(
     @PrimaryKey(autoGenerate = true) val patientId: Long = 0,
     val caregiverId: Long,
     val name: String,
-    val dateOfBirth: Long,       // stored as epoch millis, converted via Converters
-    val medicalHistory: String,
-    val medication: String,
+    val dateOfBirth: Long,       // stored as epoch millis; age is derived from this, not stored separately
+    val sex: String = "",        // "Male", "Female", or "Other"
+    val chiefComplaint: String = "",
+    val historyOfIllness: String = "",       // History of Present Illness
+    val pastMedicalHistory: String = "",
+    val surgicalHistory: String = "",
+    val familyHistory: String = "",
+    val currentPlan: String = "",
     val heightCm: Double? = null,
     val baselineWeightKg: Double? = null,
     val baselineSystolicBp: Int? = null,

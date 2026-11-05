@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 data class BookingWithNames(
     val bookingId: Long,
+    val patientId: Long,
     val patientName: String,
     val nurseFirstName: String,
     val nurseLastName: String,
@@ -23,8 +24,8 @@ interface BookingDao {
     @Query("UPDATE bookings SET status = :status WHERE bookingId = :bookingId")
     suspend fun updateStatus(bookingId: Long, status: String)
 
-    @Query("""
-        SELECT b.bookingId AS bookingId, p.name AS patientName,
+       @Query("""
+        SELECT b.bookingId AS bookingId, b.patientId AS patientId, p.name AS patientName,
                u.firstName AS nurseFirstName, u.lastName AS nurseLastName,
                b.requestedAt AS requestedAt, b.requestedVisitTime AS requestedVisitTime,
                b.notes AS notes, b.status AS status
@@ -38,7 +39,7 @@ interface BookingDao {
     fun getBookingsForPatient(patientId: Long): Flow<List<BookingWithNames>>
 
     @Query("""
-        SELECT b.bookingId AS bookingId, p.name AS patientName,
+        SELECT b.bookingId AS bookingId, b.patientId AS patientId, p.name AS patientName,
                u.firstName AS nurseFirstName, u.lastName AS nurseLastName,
                b.requestedAt AS requestedAt, b.requestedVisitTime AS requestedVisitTime,
                b.notes AS notes, b.status AS status

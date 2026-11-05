@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +24,8 @@ import java.util.Locale
 fun NurseHomeScreen(
     nurseId: Long,
     onLogout: () -> Unit,
+    onViewPatient: (patientId: Long) -> Unit,
+    onAddNote: (bookingId: Long, patientId: Long) -> Unit,
     nurseViewModel: NurseViewModel = viewModel(),
     bookingViewModel: BookingViewModel = viewModel()
 ) {
@@ -37,7 +38,8 @@ fun NurseHomeScreen(
     }
 
     val pendingBookings = bookings.filter { it.status == "PENDING" }
-    val otherBookings = bookings.filter { it.status != "PENDING" }
+    val acceptedBookings = bookings.filter { it.status == "ACCEPTED" }
+    val pastBookings = bookings.filter { it.status == "DECLINED" || it.status == "COMPLETED" }
 
     Scaffold(
         topBar = {
@@ -87,29 +89,21 @@ fun NurseHomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Pending Requests (${pendingBookings.size})", fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
-
-            if (pendingBookings.isEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
-                        Text(
-                            "No pending requests right now.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 20.dp)
             ) {
+                item {
+                    Text("Pending Requests (${pendingBookings.size})", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                if (pendingBookings.isEmpty()) {
+                    item {
+                        EmptyStateCard("No pending requests right now.")
+                    }
+                }
+
                 items(pendingBookings, key = { it.bookingId }) { booking ->
                     PendingBookingCard(
                         booking = booking,
@@ -118,17 +112,51 @@ fun NurseHomeScreen(
                     )
                 }
 
-                if (otherBookings.isNotEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Accepted \u2014 Upcoming or In Progress (${acceptedBookings.size})", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                if (acceptedBookings.isEmpty()) {
                     item {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        EmptyStateCard("No accepted bookings right now.")
+                    }
+                }
+
+                items(acceptedBookings, key = { it.bookingId }) { booking ->
+                    AcceptedBookingCard(
+                        booking = booking,
+                        onViewPatient = { onViewPatient(booking.patientId) },
+                        onAddNote = { onAddNote(booking.bookingId, booking.patientId) },
+                        onMarkCompleted = { bookingViewModel.markCompleted(booking.bookingId) }
+                    )
+                }
+
+                if (pastBookings.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text("Past Requests", fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(10.dp))
                     }
-                    items(otherBookings, key = { it.bookingId }) { booking ->
+                    items(pastBookings, key = { it.bookingId }) { booking ->
                         PastBookingCard(booking)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateCard(message: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
+            Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -166,10 +194,49 @@ private fun PendingBookingCard(booking: BookingWithNames, onAccept: () -> Unit, 
 }
 
 @Composable
+private fun AcceptedBookingCard(
+    booking: BookingWithNames,
+    onViewPatient: () -> Unit,
+    onAddNote: () -> Unit,
+    onMarkCompleted: () -> Unit
+) {
+    val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy \u00B7 h:mm a", Locale.US) }
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(booking.patientName, fontWeight = FontWeight.Bold)
+            Text(
+                formatter.format(Date(booking.requestedVisitTime)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onViewPatient, modifier = Modifier.weight(1f)) {
+                    Text("View Patient", style = MaterialTheme.typography.labelMedium)
+                }
+                OutlinedButton(onClick = onAddNote, modifier = Modifier.weight(1f)) {
+                    Text("Add Note", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = onMarkCompleted, modifier = Modifier.fillMaxWidth()) {
+                Text("Mark Visit Completed")
+            }
+        }
+    }
+}
+
+@Composable
 private fun PastBookingCard(booking: BookingWithNames) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy \u00B7 h:mm a", Locale.US) }
     val statusColor = when (booking.status) {
-        "ACCEPTED" -> MaterialTheme.colorScheme.primary
+        "COMPLETED" -> MaterialTheme.colorScheme.primary
         "DECLINED" -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }

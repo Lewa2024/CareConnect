@@ -26,8 +26,10 @@ import com.strathmore.CareConnect.ui.auth.RegisterScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
 import com.strathmore.CareConnect.ui.medication.AddMedicationScreen
 import com.strathmore.CareConnect.ui.medication.MedicationListScreen
+import com.strathmore.CareConnect.ui.nurse.AddPostVisitNoteScreen
 import com.strathmore.CareConnect.ui.nurse.FindNurseScreen
 import com.strathmore.CareConnect.ui.nurse.NurseHomeScreen
+import com.strathmore.CareConnect.ui.nurse.NursePatientViewScreen
 import com.strathmore.CareConnect.ui.nurse.RequestBookingScreen
 import com.strathmore.CareConnect.ui.patient.AddPatientScreen
 import com.strathmore.CareConnect.ui.patient.EditPatientScreen
@@ -365,7 +367,49 @@ private fun CareConnectNavHost() {
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onViewPatient = { patientId ->
+                    navController.navigate("nurse_patient_view/$nurseId/$patientId")
+                },
+                onAddNote = { bookingId, patientId ->
+                    navController.navigate("add_post_visit_note/$bookingId/$patientId/$nurseId")
                 }
+            )
+        }
+
+        composable(
+            route = "nurse_patient_view/{nurseId}/{patientId}",
+            arguments = listOf(
+                navArgument("nurseId") { type = NavType.LongType },
+                navArgument("patientId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val nurseId = backStackEntry.arguments?.getLong("nurseId") ?: return@composable
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            NursePatientViewScreen(
+                nurseId = nurseId,
+                patientId = patientId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "add_post_visit_note/{bookingId}/{patientId}/{nurseId}",
+            arguments = listOf(
+                navArgument("bookingId") { type = NavType.LongType },
+                navArgument("patientId") { type = NavType.LongType },
+                navArgument("nurseId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getLong("bookingId") ?: return@composable
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            val nurseId = backStackEntry.arguments?.getLong("nurseId") ?: return@composable
+            AddPostVisitNoteScreen(
+                bookingId = bookingId,
+                patientId = patientId,
+                nurseId = nurseId,
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() }
             )
         }
 

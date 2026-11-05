@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.strathmore.CareConnect.CareConnectApp
 import com.strathmore.CareConnect.data.local.entities.Patient
+import com.strathmore.CareConnect.data.repository.MedicationRepository
 import com.strathmore.CareConnect.data.repository.PatientRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,10 +15,12 @@ import kotlinx.coroutines.launch
 class PatientViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: PatientRepository
+    private val medicationRepository: MedicationRepository
 
     init {
         val db = (application as CareConnectApp).database
         repository = PatientRepository(db.patientDao())
+        medicationRepository = MedicationRepository(application, db.medicationDao(), db.medicationTimeDao(), db.patientDao())
     }
 
     private val _saveState = MutableStateFlow<PatientSaveState>(PatientSaveState.Idle)
@@ -36,12 +39,20 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         caregiverId: Long,
         name: String,
         dateOfBirthMillis: Long,
-        medicalHistory: String,
-        medication: String,
+        sex: String,
+        chiefComplaint: String,
+        historyOfIllness: String,
+        pastMedicalHistory: String,
+        surgicalHistory: String,
+        familyHistory: String,
+        currentPlan: String,
         heightCm: Double? = null,
         baselineWeightKg: Double? = null,
         baselineSystolicBp: Int? = null,
-        baselineDiastolicBp: Int? = null
+        baselineDiastolicBp: Int? = null,
+        medicationName: String = "",
+        medicationDosage: String = "",
+        medicationTimes: List<Pair<Int, Int>> = emptyList()
     ) {
         if (name.isBlank()) {
             _saveState.value = PatientSaveState.Error("Please enter the patient's name")
@@ -51,9 +62,20 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
             _saveState.value = PatientSaveState.Saving
             try {
                 val patientId = repository.addPatient(
-                    caregiverId, name, dateOfBirthMillis, medicalHistory, medication,
+                    caregiverId, name, dateOfBirthMillis, sex, chiefComplaint, historyOfIllness,
+                    pastMedicalHistory, surgicalHistory, familyHistory, currentPlan,
                     heightCm, baselineWeightKg, baselineSystolicBp, baselineDiastolicBp
                 )
+
+                // If medication details were given on this form, create a real Medication
+                // entry (with reminders) immediately, so it already appears under Manage
+                // Medications rather than needing to be re-entered separately.
+                if (medicationName.isNotBlank() && medicationTimes.isNotEmpty()) {
+                    medicationRepository.addMedication(
+                        patientId, medicationName, medicationDosage, notes = "", times = medicationTimes
+                    )
+                }
+
                 _saveState.value = PatientSaveState.Saved(patientId)
             } catch (e: Exception) {
                 _saveState.value = PatientSaveState.Error(e.message ?: "Failed to save patient")
@@ -93,8 +115,13 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
         patientId: Long,
         name: String,
         dateOfBirthMillis: Long,
-        medicalHistory: String,
-        medication: String,
+        sex: String,
+        chiefComplaint: String,
+        historyOfIllness: String,
+        pastMedicalHistory: String,
+        surgicalHistory: String,
+        familyHistory: String,
+        currentPlan: String,
         heightCm: Double? = null,
         baselineWeightKg: Double? = null,
         baselineSystolicBp: Int? = null,
@@ -108,7 +135,8 @@ class PatientViewModel(application: Application) : AndroidViewModel(application)
             _editState.value = EditState.Saving
             try {
                 repository.updatePatient(
-                    patientId, name, dateOfBirthMillis, medicalHistory, medication,
+                    patientId, name, dateOfBirthMillis, sex, chiefComplaint, historyOfIllness,
+                    pastMedicalHistory, surgicalHistory, familyHistory, currentPlan,
                     heightCm, baselineWeightKg, baselineSystolicBp, baselineDiastolicBp
                 )
                 _editState.value = EditState.Saved
