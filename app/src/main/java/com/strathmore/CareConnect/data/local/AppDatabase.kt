@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
         PostVisitNote::class,
         Payment::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -244,6 +244,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE bookings ADD COLUMN requestedAmountKsh REAL")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing
@@ -257,7 +263,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .fallbackToDestructiveMigration()
                     .build()
 
@@ -267,6 +273,7 @@ abstract class AppDatabase : RoomDatabase() {
                     seedRolesIfMissing(instance.roleDao())
                     seedDefaultThresholdIfMissing(instance.ruleThresholdDao())
                     seedDefaultAdminIfMissing(instance.roleDao(), instance.userDao())
+                    seedDemoNursesIfMissing(instance.roleDao(), instance.userDao(), instance.nurseDao(), instance.locationDao())
                 }
 
                 return instance
@@ -315,6 +322,76 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             )
         }
+
+        private suspend fun seedDemoNursesIfMissing(
+            roleDao: RoleDao,
+            userDao: UserDao,
+            nurseDao: NurseDao,
+            locationDao: LocationDao
+        ) {
+            val nurseRole = roleDao.getByName("Nurse") ?: return
+
+            val demoNurses = listOf(
+                DemoNurse("Jane", "Wanjiru", "jane.wanjiru.demo@careconnect.com", "Registered Nurse", "Nairobi CBD", -1.2833, 36.8219),
+                DemoNurse("Grace", "Achieng", "grace.achieng.demo@careconnect.com", "Registered Nurse", "South B, Nairobi", -1.3031, 36.7820),
+                DemoNurse("Mary", "Njeri", "mary.njeri.demo@careconnect.com", "Enrolled Nurse", "Westlands, Nairobi", -1.2694, 36.8356),
+                DemoNurse("Faith", "Mutiso", "faith.mutiso.demo@careconnect.com", "Registered Nurse", "South C, Nairobi", -1.3197, 36.8569)
+            )
+
+            for (demo in demoNurses) {
+                val existing = userDao.getByEmail(demo.email)
+                if (existing != null) continue
+
+                val salt = java.security.SecureRandom().let { rnd ->
+                    val bytes = ByteArray(16)
+                    rnd.nextBytes(bytes)
+                    bytes.joinToString("") { "%02x".format(it) }
+                }
+                val passwordHash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((salt + "Demo@123").toByteArray())
+                    .joinToString("") { "%02x".format(it) }
+
+                val userId = userDao.insert(
+                    User(
+                        roleId = nurseRole.roleId,
+                        firstName = demo.firstName,
+                        lastName = demo.lastName,
+                        email = demo.email,
+                        password = passwordHash,
+                        salt = salt,
+                        phoneNumber = "0711000000"
+                    )
+                )
+
+                val nurseId = nurseDao.insert(
+                    Nurse(
+                        userId = userId,
+                        qualification = demo.qualification,
+                        available = true,
+                        verified = true
+                    )
+                )
+
+                locationDao.insert(
+                    Location(
+                        nurseId = nurseId,
+                        city = demo.city,
+                        latitude = demo.latitude,
+                        longitude = demo.longitude
+                    )
+                )
+            }
+        }
+
+        private data class DemoNurse(
+            val firstName: String,
+            val lastName: String,
+            val email: String,
+            val qualification: String,
+            val city: String,
+            val latitude: Double,
+            val longitude: Double
+        )
 
         private suspend fun seedRolesIfMissing(roleDao: RoleDao) {
             if (roleDao.getByName("Caregiver") == null) {

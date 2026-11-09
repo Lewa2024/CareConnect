@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
@@ -11,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.data.local.dao.BookingWithNames
@@ -31,6 +33,7 @@ fun NurseHomeScreen(
 ) {
     val ownRecord by nurseViewModel.ownNurseRecord.collectAsState()
     val bookings by bookingViewModel.bookings.collectAsState()
+    val requestPaymentState by bookingViewModel.requestPaymentState.collectAsState()
 
     LaunchedEffect(nurseId) {
         nurseViewModel.loadOwnNurseRecord(nurseId)
@@ -140,7 +143,14 @@ fun NurseHomeScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                     }
                     items(pastBookings, key = { it.bookingId }) { booking ->
-                        PastBookingCard(booking)
+                        PastBookingCard(
+                            booking = booking,
+                            requestPaymentState = requestPaymentState,
+                            onRequestPayment = { bookingId, amountText ->
+                                bookingViewModel.requestPayment(bookingId, amountText)
+                            },
+                            onResetRequestPaymentState = { bookingViewModel.resetRequestPaymentState() }
+                        )
                     }
                 }
             }
@@ -233,8 +243,22 @@ private fun AcceptedBookingCard(
 }
 
 @Composable
-private fun PastBookingCard(booking: BookingWithNames) {
+private fun PastBookingCard(
+    booking: BookingWithNames,
+    requestPaymentState: BookingRequestState,
+    onRequestPayment: (bookingId: Long, amountText: String) -> Unit,
+    onResetRequestPaymentState: () -> Unit
+) {
     val formatter = remember { SimpleDateFormat("EEE, d MMM yyyy \u00B7 h:mm a", Locale.US) }
+    var showRequestDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(requestPaymentState) {
+        if (requestPaymentState is BookingRequestState.Saved) {
+            showRequestDialog = false
+            onResetRequestPaymentState()
+        }
+    }
+
     val statusColor = when (booking.status) {
         "COMPLETED" -> MaterialTheme.colorScheme.primary
         "DECLINED" -> MaterialTheme.colorScheme.error
@@ -245,20 +269,96 @@ private fun PastBookingCard(booking: BookingWithNames) {
         color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(booking.patientName, fontWeight = FontWeight.Bold)
-                Text(
-                    formatter.format(Date(booking.requestedVisitTime)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(booking.patientName, fontWeight = FontWeight.Bold)
+                    Text(
+                        formatter.format(Date(booking.requestedVisitTime)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(booking.status, color = statusColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
             }
-            Text(booking.status, color = statusColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+
+            if (booking.status == "COMPLETED") {
+                Spacer(modifier = Modifier.height(10.dp))
+                if (booking.requestedAmountKsh == null) {
+                    OutlinedButton(onClick = { showRequestDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Request Payment")
+                    }
+                } else {
+                    Text(
+                        "Payment requested: KSh ${"%.2f".format(booking.requestedAmountKsh)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
+
+    if (showRequestDialog) {
+        RequestPaymentDialog(
+            state = requestPaymentState,
+            onRequest = { amountText -> onRequestPayment(booking.bookingId, amountText) },
+            onDismiss = {
+                showRequestDialog = false
+                onResetRequestPaymentState()
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RequestPaymentDialog(
+    state: BookingRequestState,
+    onRequest: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var amountText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Request Payment") },
+        text = {
+            Column {
+                Text(
+                    "Enter the amount owed for this visit. The caregiver will see this amount in My Bookings and can pay via M-Pesa.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { amountText = it },
+                    label = { Text("Amount (KSh)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (state is BookingRequestState.Error) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(state.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onRequest(amountText) },
+                enabled = state !is BookingRequestState.Saving
+            ) {
+                Text(if (state is BookingRequestState.Saving) "Sending..." else "Send Request")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }

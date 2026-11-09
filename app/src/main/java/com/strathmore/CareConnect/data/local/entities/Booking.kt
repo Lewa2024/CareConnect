@@ -30,5 +30,6 @@ data class Booking(
     val requestedAt: Long,       // when the caregiver made the request
     val requestedVisitTime: Long, // the date/time they're asking the nurse to visit
     val notes: String = "",
-    val status: String = "PENDING" // PENDING, ACCEPTED, DECLINED, COMPLETED
+    val status: String = "PENDING", // PENDING, ACCEPTED, DECLINED, COMPLETED
+    val requestedAmountKsh: Double? = null // set by the nurse when requesting payment for a completed visit
 )

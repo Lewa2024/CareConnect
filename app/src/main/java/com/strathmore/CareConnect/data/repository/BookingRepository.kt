@@ -71,4 +71,8 @@ class BookingRepository(
             )
         )
     }
+
+    suspend fun requestPayment(bookingId: Long, amountKsh: Double) {
+        bookingDao.updateRequestedAmount(bookingId, amountKsh)
+    }
 }

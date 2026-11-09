@@ -43,6 +43,9 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
     private val _paymentState = MutableStateFlow<BookingRequestState>(BookingRequestState.Idle)
     val paymentState: StateFlow<BookingRequestState> = _paymentState.asStateFlow()
 
+    private val _requestPaymentState = MutableStateFlow<BookingRequestState>(BookingRequestState.Idle)
+    val requestPaymentState: StateFlow<BookingRequestState> = _requestPaymentState.asStateFlow()
+
     private val _mpesaState = MutableStateFlow<MpesaPaymentState>(MpesaPaymentState.Idle)
     val mpesaState: StateFlow<MpesaPaymentState> = _mpesaState.asStateFlow()
 
@@ -145,6 +148,27 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
 
     fun resetPaymentState() {
         _paymentState.value = BookingRequestState.Idle
+    }
+
+    fun requestPayment(bookingId: Long, amountText: String) {
+        val amount = amountText.trim().toDoubleOrNull()
+        if (amount == null || amount <= 0.0) {
+            _requestPaymentState.value = BookingRequestState.Error("Enter a valid amount")
+            return
+        }
+        viewModelScope.launch {
+            _requestPaymentState.value = BookingRequestState.Saving
+            try {
+                repository.requestPayment(bookingId, amount)
+                _requestPaymentState.value = BookingRequestState.Saved
+            } catch (e: Exception) {
+                _requestPaymentState.value = BookingRequestState.Error(e.message ?: "Failed to request payment")
+            }
+        }
+    }
+
+    fun resetRequestPaymentState() {
+        _requestPaymentState.value = BookingRequestState.Idle
     }
 
         fun initiateMpesaPayment(bookingId: Long, amountText: String, phoneText: String) {

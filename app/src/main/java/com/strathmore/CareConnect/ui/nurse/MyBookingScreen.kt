@@ -144,32 +144,56 @@ private fun MyBookingCard(booking: BookingWithNames, onRecordPayment: () -> Unit
 
             if (booking.status == "COMPLETED") {
                 Spacer(modifier = Modifier.height(10.dp))
-                if (booking.paymentAmountKsh != null) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                "Paid: KSh ${"%.2f".format(booking.paymentAmountKsh)}",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                "M-Pesa code: ${booking.paymentMpesaCode}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
+                when {
+                    booking.paymentAmountKsh != null -> {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    "Paid: KSh ${"%.2f".format(booking.paymentAmountKsh)}",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    "M-Pesa code: ${booking.paymentMpesaCode}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
                         }
                     }
-                } else {
-                    Button(
-                        onClick = onRecordPayment,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth().height(44.dp)
-                    ) {
-                        Text("Pay with M-Pesa")
+                    booking.requestedAmountKsh != null -> {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    "Amount due: KSh ${"%.2f".format(booking.requestedAmountKsh)}",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onRecordPayment,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth().height(44.dp)
+                        ) {
+                            Text("Pay with M-Pesa")
+                        }
+                    }
+                    else -> {
+                        Text(
+                            "Waiting for the nurse to confirm the amount owed.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -184,7 +208,7 @@ private fun RecordPaymentDialog(
     viewModel: BookingViewModel,
     onDismiss: () -> Unit
 ) {
-    var amountText by remember { mutableStateOf("") }
+    val amountText = booking.requestedAmountKsh?.let { "%.2f".format(it) } ?: ""
     var phoneText by remember { mutableStateOf("") }
     var mpesaCode by remember { mutableStateOf("") }
     val mpesaState by viewModel.mpesaState.collectAsState()
@@ -206,17 +230,14 @@ private fun RecordPaymentDialog(
                 when (mpesaState) {
                     is MpesaPaymentState.Idle -> {
                         Text(
-                            "Enter the visit amount and phone number, then send the M-Pesa prompt.",
+                            "Enter your M-Pesa phone number, then send the payment prompt.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        OutlinedTextField(
-                            value = amountText,
-                            onValueChange = { input -> amountText = filterDecimalInput(input) },
-                            label = { Text("Amount (KSh)") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth()
+                        Text(
+                            "Amount: KSh $amountText",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
                         OutlinedTextField(
                             value = phoneText,
