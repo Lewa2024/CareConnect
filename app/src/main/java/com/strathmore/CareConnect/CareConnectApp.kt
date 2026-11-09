@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.strathmore.CareConnect.data.local.AppDatabase
+import java.io.File
 
 class CareConnectApp : Application() {
     // Lazily created, single shared Room instance for the whole app (offline-first).
@@ -17,6 +18,14 @@ class CareConnectApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+
+        // osmdroid requires a "user agent" string identifying the app (per OpenStreetMap's
+        // tile usage policy) and a writable folder to cache downloaded map tiles.
+        org.osmdroid.config.Configuration.getInstance().apply {
+            userAgentValue = packageName
+            osmdroidBasePath = File(cacheDir, "osmdroid")
+            osmdroidTileCache = File(osmdroidBasePath, "tiles")
+        }
     }
 
     private fun createNotificationChannel() {

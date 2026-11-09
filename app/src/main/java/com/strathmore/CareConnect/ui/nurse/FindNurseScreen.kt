@@ -26,13 +26,14 @@ import com.strathmore.CareConnect.ui.components.AppLogo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindNurseScreen(
-    patientId: Long, // not used directly here — just carried through to the booking screen
+    patientId: Long,
     onBack: () -> Unit,
     onBookNurse: (nurseId: Long) -> Unit,
     viewModel: NurseViewModel = viewModel()
 ) {
     val nurses by viewModel.nurses.collectAsState()
     val loadState by viewModel.loadState.collectAsState()
+    val selfLocation by viewModel.selfLocation.collectAsState()
     val context = LocalContext.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -95,22 +96,41 @@ fun FindNurseScreen(
                     }
                 }
                 is NurseLoadState.Loaded -> {
-                    if (nurses.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(
-                                "No available nurses found nearby.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(32.dp)
-                            )
+                    val loc = selfLocation
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 20.dp)
+                    ) {
+                        if (loc != null) {
+                            item {
+                                NurseMapView(
+                                    caregiverLat = loc.latitude,
+                                    caregiverLng = loc.longitude,
+                                    nurses = nurses,
+                                    onNurseMarkerClick = { },
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                         }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(bottom = 20.dp)
-                        ) {
+
+                        if (nurses.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "No available nurses found nearby.",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
                             items(nurses, key = { it.nurse.nurseId }) { entry ->
-                                NurseCard(entry = entry, onBook = { onBookNurse(entry.nurse.nurseId) })
+                                Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                                    NurseCard(entry = entry, onBook = { onBookNurse(entry.nurse.nurseId) })
+                                }
                             }
                         }
                     }

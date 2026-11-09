@@ -38,6 +38,9 @@ class NurseViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _selfLocation = MutableStateFlow<DeviceLocation?>(null)
+    val selfLocation: StateFlow<DeviceLocation?> = _selfLocation.asStateFlow()
+
     fun loadNearbyNurses() {
         viewModelScope.launch {
             _loadState.value = NurseLoadState.Loading
@@ -46,6 +49,7 @@ class NurseViewModel(application: Application) : AndroidViewModel(application) {
                 _loadState.value = NurseLoadState.LocationUnavailable
                 return@launch
             }
+            _selfLocation.value = location
             repository.getAvailableNursesSortedByDistance(location.latitude, location.longitude)
                 .collect { list ->
                     _nurses.value = list
@@ -53,7 +57,6 @@ class NurseViewModel(application: Application) : AndroidViewModel(application) {
                 }
         }
     }
-
     fun setAvailable(nurseId: Long, available: Boolean) {
         viewModelScope.launch {
             repository.setAvailable(nurseId, available)

@@ -15,6 +15,7 @@ import com.strathmore.CareConnect.data.local.dao.MedicationTimeDao
 import com.strathmore.CareConnect.data.local.dao.NotificationDao
 import com.strathmore.CareConnect.data.local.dao.NurseDao
 import com.strathmore.CareConnect.data.local.dao.PatientDao
+import com.strathmore.CareConnect.data.local.dao.PaymentDao
 import com.strathmore.CareConnect.data.local.dao.PostVisitNoteDao
 import com.strathmore.CareConnect.data.local.dao.RoleDao
 import com.strathmore.CareConnect.data.local.dao.RuleThresholdDao
@@ -28,6 +29,7 @@ import com.strathmore.CareConnect.data.local.entities.MedicationTime
 import com.strathmore.CareConnect.data.local.entities.Notification
 import com.strathmore.CareConnect.data.local.entities.Nurse
 import com.strathmore.CareConnect.data.local.entities.Patient
+import com.strathmore.CareConnect.data.local.entities.Payment
 import com.strathmore.CareConnect.data.local.entities.PostVisitNote
 import com.strathmore.CareConnect.data.local.entities.Role
 import com.strathmore.CareConnect.data.local.entities.RuleThreshold
@@ -51,9 +53,10 @@ import kotlinx.coroutines.launch
         Nurse::class,
         Location::class,
         Booking::class,
-        PostVisitNote::class
+        PostVisitNote::class,
+        Payment::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -72,6 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun locationDao(): LocationDao
     abstract fun bookingDao(): BookingDao
     abstract fun postVisitNoteDao(): PostVisitNoteDao
+    abstract fun paymentDao(): PaymentDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null
@@ -224,6 +228,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS payments (
+                        paymentId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        bookingId INTEGER NOT NULL,
+                        amountKsh REAL NOT NULL,
+                        mpesaCode TEXT NOT NULL,
+                        paidAt INTEGER NOT NULL,
+                        FOREIGN KEY(bookingId) REFERENCES bookings(bookingId) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_payments_bookingId ON payments(bookingId)")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing
@@ -237,7 +257,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                     .fallbackToDestructiveMigration()
                     .build()
 

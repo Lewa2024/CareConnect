@@ -18,7 +18,7 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         val db = (application as CareConnectApp).database
-        repository = BookingRepository(db.bookingDao(), db.postVisitNoteDao())
+        repository = BookingRepository(db.bookingDao(), db.postVisitNoteDao(), db.paymentDao())
     }
 
     private val _bookings = MutableStateFlow<List<BookingWithNames>>(emptyList())
@@ -35,6 +35,9 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
 
     private val _hasAccess = MutableStateFlow(false)
     val hasAccess: StateFlow<Boolean> = _hasAccess.asStateFlow()
+
+    private val _paymentState = MutableStateFlow<BookingRequestState>(BookingRequestState.Idle)
+    val paymentState: StateFlow<BookingRequestState> = _paymentState.asStateFlow()
 
     fun requestBooking(patientId: Long, nurseId: Long, requestedVisitTime: Long, notes: String) {
         if (requestedVisitTime <= System.currentTimeMillis()) {
@@ -110,6 +113,31 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             repository.getNotesForPatient(patientId).collect { _notes.value = it }
         }
+    }
+
+    fun recordPayment(bookingId: Long, amountText: String, mpesaCode: String) {
+        val amount = amountText.trim().toDoubleOrNull()
+        if (amount == null || amount <= 0.0) {
+            _paymentState.value = BookingRequestState.Error("Enter a valid amount")
+            return
+        }
+        if (mpesaCode.isBlank()) {
+            _paymentState.value = BookingRequestState.Error("Enter the M-Pesa confirmation code")
+            return
+        }
+        viewModelScope.launch {
+            _paymentState.value = BookingRequestState.Saving
+            try {
+                repository.recordPayment(bookingId, amount, mpesaCode)
+                _paymentState.value = BookingRequestState.Saved
+            } catch (e: Exception) {
+                _paymentState.value = BookingRequestState.Error(e.message ?: "Failed to save payment")
+            }
+        }
+    }
+
+    fun resetPaymentState() {
+        _paymentState.value = BookingRequestState.Idle
     }
 }
 

@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import com.strathmore.CareConnect.data.repository.NurseWithDistance
 import kotlin.math.sqrt
 
 data class NurseWithDistance(

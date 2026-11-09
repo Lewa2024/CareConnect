@@ -28,6 +28,7 @@ import com.strathmore.CareConnect.ui.medication.AddMedicationScreen
 import com.strathmore.CareConnect.ui.medication.MedicationListScreen
 import com.strathmore.CareConnect.ui.nurse.AddPostVisitNoteScreen
 import com.strathmore.CareConnect.ui.nurse.FindNurseScreen
+import com.strathmore.CareConnect.ui.nurse.MyBookingsScreen
 import com.strathmore.CareConnect.ui.nurse.NurseHomeScreen
 import com.strathmore.CareConnect.ui.nurse.NursePatientViewScreen
 import com.strathmore.CareConnect.ui.nurse.RequestBookingScreen
@@ -225,7 +226,8 @@ private fun CareConnectNavHost() {
                 patientId = patientId,
                 onBack = { navController.popBackStack() },
                 onEdit = { id -> navController.navigate("edit_patient/$id") },
-                onViewMedications = { id -> navController.navigate("medication_list/$id") }
+                onViewMedications = { id -> navController.navigate("medication_list/$id") },
+                onViewBookings = { id -> navController.navigate("my_bookings/$id") }
             )
         }
 
@@ -353,6 +355,17 @@ private fun CareConnectNavHost() {
                 onRequested = {
                     navController.popBackStack("find_nurse/$patientId", inclusive = true)
                 }
+            )
+        }
+
+        composable(
+            route = "my_bookings/{patientId}",
+            arguments = listOf(navArgument("patientId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val patientId = backStackEntry.arguments?.getLong("patientId") ?: return@composable
+            MyBookingsScreen(
+                patientId = patientId,
+                onBack = { navController.popBackStack() }
             )
         }
 

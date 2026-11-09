@@ -2,12 +2,17 @@ package com.strathmore.CareConnect.data.repository
 
 import com.strathmore.CareConnect.data.local.dao.BookingDao
 import com.strathmore.CareConnect.data.local.dao.BookingWithNames
+import com.strathmore.CareConnect.data.local.dao.PaymentDao
+import com.strathmore.CareConnect.data.local.dao.PostVisitNoteDao
 import com.strathmore.CareConnect.data.local.entities.Booking
+import com.strathmore.CareConnect.data.local.entities.Payment
+import com.strathmore.CareConnect.data.local.entities.PostVisitNote
 import kotlinx.coroutines.flow.Flow
 
 class BookingRepository(
     private val bookingDao: BookingDao,
-    private val postVisitNoteDao: com.strathmore.CareConnect.data.local.dao.PostVisitNoteDao
+    private val postVisitNoteDao: PostVisitNoteDao,
+    private val paymentDao: PaymentDao
 ) {
     suspend fun requestBooking(
         patientId: Long,
@@ -39,12 +44,12 @@ class BookingRepository(
         bookingDao.updateStatus(bookingId, "COMPLETED")
     }
 
-        suspend fun hasAcceptedBooking(nurseId: Long, patientId: Long): Boolean =
+    suspend fun hasAcceptedBooking(nurseId: Long, patientId: Long): Boolean =
         postVisitNoteDao.hasAcceptedBooking(nurseId, patientId) > 0
 
     suspend fun addPostVisitNote(bookingId: Long, patientId: Long, nurseId: Long, note: String) {
         postVisitNoteDao.insert(
-            com.strathmore.CareConnect.data.local.entities.PostVisitNote(
+            PostVisitNote(
                 bookingId = bookingId,
                 patientId = patientId,
                 nurseId = nurseId,
@@ -55,4 +60,15 @@ class BookingRepository(
     }
 
     fun getNotesForPatient(patientId: Long) = postVisitNoteDao.getNotesForPatient(patientId)
+
+    suspend fun recordPayment(bookingId: Long, amountKsh: Double, mpesaCode: String) {
+        paymentDao.insert(
+            Payment(
+                bookingId = bookingId,
+                amountKsh = amountKsh,
+                mpesaCode = mpesaCode.trim(),
+                paidAt = System.currentTimeMillis()
+            )
+        )
+    }
 }
