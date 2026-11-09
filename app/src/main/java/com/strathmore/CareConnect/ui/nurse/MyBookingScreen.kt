@@ -90,7 +90,11 @@ fun MyBookingsScreen(
         RecordPaymentDialog(
             booking = booking,
             viewModel = viewModel,
-            onDismiss = { paymentTarget = null }
+            onDismiss = {
+                viewModel.resetMpesaState()
+                viewModel.resetPaymentState()
+                paymentTarget = null
+            }
         )
     }
 }
@@ -165,7 +169,7 @@ private fun MyBookingCard(booking: BookingWithNames, onRecordPayment: () -> Unit
                         shape = MaterialTheme.shapes.medium,
                         modifier = Modifier.fillMaxWidth().height(44.dp)
                     ) {
-                        Text("Record Payment")
+                        Text("Pay with M-Pesa")
                     }
                 }
             }
@@ -181,41 +185,82 @@ private fun RecordPaymentDialog(
     onDismiss: () -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
+    var phoneText by remember { mutableStateOf("") }
     var mpesaCode by remember { mutableStateOf("") }
+    val mpesaState by viewModel.mpesaState.collectAsState()
     val paymentState by viewModel.paymentState.collectAsState()
 
     LaunchedEffect(paymentState) {
         if (paymentState is BookingRequestState.Saved) {
             viewModel.resetPaymentState()
+            viewModel.resetMpesaState()
             onDismiss()
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Record Payment") },
+        title = { Text("Pay ${booking.nurseFirstName} ${booking.nurseLastName}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "Enter what you paid ${booking.nurseFirstName} ${booking.nurseLastName} via M-Pesa for this visit.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { input -> amountText = filterDecimalInput(input) },
-                    label = { Text("Amount (KSh)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = mpesaCode,
-                    onValueChange = { mpesaCode = it.uppercase() },
-                    label = { Text("M-Pesa confirmation code") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                when (mpesaState) {
+                    is MpesaPaymentState.Idle -> {
+                        Text(
+                            "Enter the visit amount and phone number, then send the M-Pesa prompt.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = amountText,
+                            onValueChange = { input -> amountText = filterDecimalInput(input) },
+                            label = { Text("Amount (KSh)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = phoneText,
+                            onValueChange = { input -> phoneText = input.filter { it.isDigit() || it == '+' } },
+                            label = { Text("M-Pesa phone number (e.g. 0712345678)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    is MpesaPaymentState.Requesting -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Text("Sending request to M-Pesa...", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    is MpesaPaymentState.WaitingForCustomer -> {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Text("Check your phone and enter your M-Pesa PIN to complete the payment...", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    is MpesaPaymentState.Paid -> {
+                        Text(
+                            "Payment confirmed! Enter the M-Pesa confirmation code from your SMS to complete the record.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        OutlinedTextField(
+                            value = mpesaCode,
+                            onValueChange = { mpesaCode = it.uppercase() },
+                            label = { Text("M-Pesa confirmation code") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    is MpesaPaymentState.Failed -> {
+                        Text(
+                            (mpesaState as MpesaPaymentState.Failed).message,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
                 if (paymentState is BookingRequestState.Error) {
                     Text(
                         (paymentState as BookingRequestState.Error).message,
@@ -226,11 +271,26 @@ private fun RecordPaymentDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = { viewModel.recordPayment(booking.bookingId, amountText, mpesaCode) },
-                enabled = paymentState !is BookingRequestState.Saving
-            ) {
-                Text(if (paymentState is BookingRequestState.Saving) "Saving..." else "Save")
+            when (mpesaState) {
+                is MpesaPaymentState.Idle -> {
+                    TextButton(onClick = { viewModel.initiateMpesaPayment(booking.bookingId, amountText, phoneText) }) {
+                        Text("Pay with M-Pesa")
+                    }
+                }
+                is MpesaPaymentState.Failed -> {
+                    TextButton(onClick = { viewModel.resetMpesaState() }) {
+                        Text("Try Again")
+                    }
+                }
+                is MpesaPaymentState.Paid -> {
+                    TextButton(
+                        onClick = { viewModel.recordPayment(booking.bookingId, amountText, mpesaCode) },
+                        enabled = paymentState !is BookingRequestState.Saving
+                    ) {
+                        Text(if (paymentState is BookingRequestState.Saving) "Saving..." else "Save")
+                    }
+                }
+                else -> {} // Requesting / WaitingForCustomer: no action button while in progress
             }
         },
         dismissButton = {

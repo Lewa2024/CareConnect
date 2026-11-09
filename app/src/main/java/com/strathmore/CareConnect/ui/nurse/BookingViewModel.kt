@@ -7,6 +7,9 @@ import com.strathmore.CareConnect.CareConnectApp
 import com.strathmore.CareConnect.data.local.dao.BookingWithNames
 import com.strathmore.CareConnect.data.local.dao.PostVisitNoteWithNurse
 import com.strathmore.CareConnect.data.repository.BookingRepository
+import com.strathmore.CareConnect.data.repository.DarajaRepository
+import com.strathmore.CareConnect.data.repository.StkPushOutcome
+import com.strathmore.CareConnect.data.repository.StkPushStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +18,7 @@ import kotlinx.coroutines.launch
 class BookingViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: BookingRepository
+    private val darajaRepository = DarajaRepository()
 
     init {
         val db = (application as CareConnectApp).database
@@ -38,6 +42,9 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
 
     private val _paymentState = MutableStateFlow<BookingRequestState>(BookingRequestState.Idle)
     val paymentState: StateFlow<BookingRequestState> = _paymentState.asStateFlow()
+
+    private val _mpesaState = MutableStateFlow<MpesaPaymentState>(MpesaPaymentState.Idle)
+    val mpesaState: StateFlow<MpesaPaymentState> = _mpesaState.asStateFlow()
 
     fun requestBooking(patientId: Long, nurseId: Long, requestedVisitTime: Long, notes: String) {
         if (requestedVisitTime <= System.currentTimeMillis()) {
@@ -139,6 +146,42 @@ class BookingViewModel(application: Application) : AndroidViewModel(application)
     fun resetPaymentState() {
         _paymentState.value = BookingRequestState.Idle
     }
+
+        fun initiateMpesaPayment(bookingId: Long, amountText: String, phoneText: String) {
+        val amount = amountText.trim().toDoubleOrNull()
+        if (amount == null || amount <= 0.0) {
+            _mpesaState.value = MpesaPaymentState.Failed("Enter a valid amount first")
+            return
+        }
+        val phone = darajaRepository.normalizePhoneNumber(phoneText)
+        if (phone == null) {
+            _mpesaState.value = MpesaPaymentState.Failed("Enter a valid phone number (e.g. 0712345678)")
+            return
+        }
+        viewModelScope.launch {
+            _mpesaState.value = MpesaPaymentState.Requesting
+            when (val outcome = darajaRepository.initiateStkPush(amount, phone, "Booking$bookingId")) {
+                is StkPushOutcome.Success -> {
+                    _mpesaState.value = MpesaPaymentState.WaitingForCustomer
+                    when (val status = darajaRepository.pollUntilResolved(outcome.checkoutRequestId)) {
+                        is StkPushStatus.Paid -> _mpesaState.value = MpesaPaymentState.Paid
+                        is StkPushStatus.Failed -> _mpesaState.value = MpesaPaymentState.Failed(status.message)
+                        StkPushStatus.TimedOut -> _mpesaState.value =
+                            MpesaPaymentState.Failed("No response from M-Pesa in time. Please try again.")
+                        StkPushStatus.Pending -> _mpesaState.value =
+                            MpesaPaymentState.Failed("Could not confirm payment status. Check your M-Pesa messages.")
+                    }
+                }
+                is StkPushOutcome.Failed -> {
+                    _mpesaState.value = MpesaPaymentState.Failed(outcome.message)
+                }
+            }
+        }
+    }
+
+    fun resetMpesaState() {
+        _mpesaState.value = MpesaPaymentState.Idle
+    }
 }
 
 sealed class BookingRequestState {
@@ -146,4 +189,12 @@ sealed class BookingRequestState {
     data object Saving : BookingRequestState()
     data object Saved : BookingRequestState()
     data class Error(val message: String) : BookingRequestState()
+}
+
+sealed class MpesaPaymentState {
+    data object Idle : MpesaPaymentState()
+    data object Requesting : MpesaPaymentState()
+    data object WaitingForCustomer : MpesaPaymentState()
+    data object Paid : MpesaPaymentState()
+    data class Failed(val message: String) : MpesaPaymentState()
 }

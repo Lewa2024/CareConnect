@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material3.*
@@ -29,6 +30,7 @@ fun PatientDetailsScreen(
     onBack: () -> Unit,
     onEdit: (patientId: Long) -> Unit,
     onViewMedications: (patientId: Long) -> Unit,
+    onViewBookings: (patientId: Long) -> Unit,
     viewModel: PatientViewModel = viewModel(),
     bookingViewModel: BookingViewModel = viewModel()
 ) {
@@ -120,6 +122,16 @@ fun PatientDetailsScreen(
                     Icon(Icons.Default.Medication, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Manage Medications")
+                }
+
+                OutlinedButton(
+                    onClick = { onViewBookings(patientId) },
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("My Bookings")
                 }
 
                 OutlinedButton(
