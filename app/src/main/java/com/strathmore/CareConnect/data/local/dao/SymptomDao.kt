@@ -76,4 +76,28 @@ interface SymptomDao {
 
     @Query("SELECT DISTINCT type FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE'")
     suspend fun getDistinctTypesForPatient(patientId: Long): List<String>
+
+    @Query("SELECT * FROM symptoms WHERE patientId = :patientId AND status = 'ACTIVE' AND date = :date")
+    suspend fun getActiveByPatientAndDate(patientId: Long, date: Long): List<Symptom>
+
+    @Query("""
+        SELECT * FROM symptoms
+        WHERE patientId = :patientId AND status = 'ACTIVE' AND medicationTaken IS NOT NULL
+        ORDER BY date DESC LIMIT :limit
+    """)
+    suspend fun getRecentMedicationAnswers(patientId: Long, limit: Int): List<Symptom>
+
+    @Query("""
+        SELECT * FROM symptoms
+        WHERE patientId = :patientId AND status = 'ACTIVE' AND weightKg IS NOT NULL
+        ORDER BY date DESC LIMIT 1
+    """)
+    suspend fun getMostRecentWeightEntry(patientId: Long): Symptom?
+
+    @Query("""
+    SELECT * FROM symptoms
+    WHERE patientId = :patientId AND status = 'ACTIVE' AND date < :beforeDate
+    ORDER BY date DESC LIMIT 1
+""")
+suspend fun getPreviousEntryBeforeDate(patientId: Long, beforeDate: Long): Symptom?
 }

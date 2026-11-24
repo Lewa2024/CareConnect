@@ -15,7 +15,7 @@ class SymptomRepository(
     ruleThresholdDao: RuleThresholdDao,
     notificationDao: NotificationDao
 ) {
-    private val ruleEngine = RuleEngine(symptomDao, ruleThresholdDao, notificationDao)
+    private val ruleEngine = RuleEngine(symptomDao, ruleThresholdDao, notificationDao, patientDao)
 
     suspend fun logSymptom(
         patientId: Long,
@@ -26,13 +26,19 @@ class SymptomRepository(
         systolicBp: Int? = null,
         diastolicBp: Int? = null,
         medicationTaken: Boolean? = null,
-        surveyNote: String? = null
+        surveyNote: String? = null,
+        secondType: String? = null,
+        secondRating: Int? = null
     ): List<Notification> {
+        // Both entries share one timestamp so the RuleEngine can tell they were
+        // submitted together (Rule 5 — Simultaneous Multi-Symptom Entry).
+        val submittedAt = System.currentTimeMillis()
+
         val symptom = Symptom(
             patientId = patientId,
             type = type,
             rating = rating,
-            date = System.currentTimeMillis(),
+            date = submittedAt,
             notes = notes,
             weightKg = weightKg,
             systolicBp = systolicBp,
@@ -41,7 +47,23 @@ class SymptomRepository(
             surveyNote = surveyNote
         )
         val symptomId = symptomDao.insert(symptom)
-        return ruleEngine.evaluateAfterLogging(patientId, symptomId, type)
+        val fired = ruleEngine.evaluateAfterLogging(patientId, symptomId, type).toMutableList()
+
+        if (!secondType.isNullOrBlank() && secondRating != null) {
+            val secondSymptom = Symptom(
+                patientId = patientId,
+                type = secondType,
+                rating = secondRating,
+                date = submittedAt,
+                notes = notes
+                // Vitals belong to the primary entry only — no point duplicating
+                // weight/BP/medication-taken/survey note across both rows.
+            )
+            val secondSymptomId = symptomDao.insert(secondSymptom)
+            fired += ruleEngine.evaluateAfterLogging(patientId, secondSymptomId, secondType)
+        }
+
+        return fired
     }
 
     fun getHistory(patientId: Long): Flow<List<Symptom>> =

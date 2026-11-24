@@ -44,7 +44,7 @@ fun HomeScreen(
     val patient by viewModel.patient.collectAsState()
     val caregiverFirstName by viewModel.caregiverFirstName.collectAsState()
     val latestEntry by viewModel.latestEntry.collectAsState()
-    val latestAlert by viewModel.latestAlert.collectAsState()
+    val latestAlerts by viewModel.latestAlerts.collectAsState()
     val trend by viewModel.trend.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -198,8 +198,7 @@ fun HomeScreen(
             Text("Recent alerts", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
 
-            val alert = latestAlert
-            if (alert == null) {
+            if (latestAlerts.isEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Ice,
@@ -215,34 +214,38 @@ fun HomeScreen(
                     }
                 }
             } else {
-                val isUrgent = alert.urgency == "URGENT"
-                val accentColor = if (isUrgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = accentColor.copy(alpha = 0.1f),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { patient?.let { onViewHistory(it.patientId) } }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(color = accentColor, shape = RoundedCornerShape(20.dp)) {
-                            Text(
-                                alert.urgency,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
-                            )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    latestAlerts.forEach { alert ->
+                        val isUrgent = alert.urgency == "URGENT"
+                        val accentColor = if (isUrgent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = accentColor.copy(alpha = 0.1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { patient?.let { onViewHistory(it.patientId) } }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(color = accentColor, shape = RoundedCornerShape(20.dp)) {
+                                    Text(
+                                        alert.urgency,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    alert.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            alert.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
                     }
                 }
             }

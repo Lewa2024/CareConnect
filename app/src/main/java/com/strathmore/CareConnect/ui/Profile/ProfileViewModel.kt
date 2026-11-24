@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.strathmore.CareConnect.CareConnectApp
 import com.strathmore.CareConnect.data.local.entities.User
 import com.strathmore.CareConnect.data.repository.AuthRepository
+import com.strathmore.CareConnect.data.repository.EmailVerificationSender   
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         val db = (application as CareConnectApp).database
-        repository = AuthRepository(db.userDao(), db.roleDao(), db.caregiverDao(), db.nurseDao(), db.locationDao())
+        repository = AuthRepository(db.userDao(), db.roleDao(), db.caregiverDao(), db.nurseDao(), db.locationDao(), EmailVerificationSender())
     }
 
     private val _user = MutableStateFlow<User?>(null)

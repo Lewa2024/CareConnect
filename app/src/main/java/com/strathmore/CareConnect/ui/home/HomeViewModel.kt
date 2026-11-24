@@ -25,6 +25,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         repository = SymptomRepository(db.symptomDao(), db.patientDao(), db.ruleThresholdDao(), db.notificationDao())
     }
 
+    companion object {
+        // Clinical priority order for which single alert to surface on the Home screen
+        // when more than one rule fires from the same log event (lower number = shown
+        // first). Rule 1 (URGENT, absolute threshold) always wins. Rule 2 and Rule 5 are
+        // specific single-event signals, shown before the trend-based Rule 4 and Rule 7.
+        // Rule 6 (medication) comes after those. Rule 3 (multi-symptom) is deliberately
+        // last: it scans every symptom type the patient has ever logged and fires easily
+        // once several types have history, so it's the most likely to be "noise" sitting
+        // alongside a more specific rule — e.g. Rule 2 firing alongside Rule 3 should show
+        // Rule 2.
+        private val RULE_PRIORITY = mapOf(
+            1 to 1,
+            2 to 2,
+            5 to 3,
+            4 to 4,
+            7 to 5,
+            6 to 6,
+            3 to 7
+        )
+    }
+
     private val _patient = MutableStateFlow<Patient?>(null)
     val patient: StateFlow<Patient?> = _patient.asStateFlow()
 
@@ -34,8 +55,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _latestEntry = MutableStateFlow<Symptom?>(null)
     val latestEntry: StateFlow<Symptom?> = _latestEntry.asStateFlow()
 
-    private val _latestAlert = MutableStateFlow<Notification?>(null)
-    val latestAlert: StateFlow<Notification?> = _latestAlert.asStateFlow()
+    // Kept as a List for minimal disruption to HomeScreen.kt, but now holds at most one
+    // entry: the single highest-priority rule that fired from the most recent log event,
+    // per RULE_PRIORITY above, rather than every rule that fired.
+    private val _latestAlerts = MutableStateFlow<List<Notification>>(emptyList())
+    val latestAlerts: StateFlow<List<Notification>> = _latestAlerts.asStateFlow()
 
     private val _trend = MutableStateFlow<List<Symptom>>(emptyList())
     val trend: StateFlow<List<Symptom>> = _trend.asStateFlow()
@@ -50,7 +74,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _patient.value = patients.firstOrNull()
                 _patient.value?.let {
                     loadLatestEntry(it.patientId)
-                    loadLatestAlert(it.patientId)
+                    loadLatestAlerts(it.patientId)
                     loadTrend(it.patientId)
                 }
             }
@@ -63,9 +87,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun loadLatestAlert(patientId: Long) {
+    private fun loadLatestAlerts(patientId: Long) {
         viewModelScope.launch {
-            _latestAlert.value = notificationDao.getMostRecent(patientId)
+            val batch = notificationDao.getMostRecentBatch(patientId)
+            val topPriority = batch.minByOrNull { RULE_PRIORITY[it.ruleNumber] ?: Int.MAX_VALUE }
+            _latestAlerts.value = listOfNotNull(topPriority)
         }
     }
 

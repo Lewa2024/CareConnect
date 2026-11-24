@@ -20,6 +20,7 @@ fun LoginScreen(
     onCaregiverLoggedIn: (Long) -> Unit,
     onAdminLoggedIn: (Long) -> Unit,
     onNurseLoggedIn: (Long) -> Unit,
+    onNeedsVerification: (Long, String) -> Unit,
     onNavigateToRegister: () -> Unit,
     onNavigateToForgotPassword: () -> Unit
 ) {
@@ -40,6 +41,10 @@ fun LoginScreen(
             }
             is AuthState.NurseSuccess -> {
                 onNurseLoggedIn(state.nurseId)
+                viewModel.resetState()
+            }
+            is AuthState.PendingVerification -> {
+                onNeedsVerification(state.userId, state.email)
                 viewModel.resetState()
             }
             else -> { /* no-op for Idle, Loading, Error */ }

@@ -32,6 +32,10 @@ fun SymptomLogScreen(
     var rating by remember { mutableStateOf(5f) }
     var notes by remember { mutableStateOf("") }
     var showQuickGuide by remember { mutableStateOf(false) }
+    var showSecondSymptom by remember { mutableStateOf(false) }
+    var secondType by remember { mutableStateOf("") }
+    var secondDropdownExpanded by remember { mutableStateOf(false) }
+    var secondRating by remember { mutableStateOf(5f) }
     var showVitals by remember { mutableStateOf(false) }
     var weightText by remember { mutableStateOf("") }
     var systolicText by remember { mutableStateOf("") }
@@ -164,6 +168,76 @@ fun SymptomLogScreen(
             )
 
             TextButton(
+                onClick = {
+                    showSecondSymptom = !showSecondSymptom
+                    if (!showSecondSymptom) {
+                        secondType = ""
+                        secondRating = 5f
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (showSecondSymptom) "Remove second symptom" else "+ Log a second symptom at the same time")
+            }
+
+            if (showSecondSymptom) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            "Logging this together with $selectedType, at the same time, so both are " +
+                                "saved as one submission.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        ExposedDropdownMenuBox(
+                            expanded = secondDropdownExpanded,
+                            onExpandedChange = { secondDropdownExpanded = it }
+                        ) {
+                            CareTextField(
+                                value = secondType,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Second symptom type") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = secondDropdownExpanded) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = secondDropdownExpanded,
+                                onDismissRequest = { secondDropdownExpanded = false }
+                            ) {
+                                SYMPTOM_TYPES.filter { it != "Other" && it != selectedType }.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = { Text(option) },
+                                        onClick = {
+                                            secondType = option
+                                            secondDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Text("Severity: ${secondRating.toInt()} / 10", fontWeight = FontWeight.Bold)
+                        Slider(
+                            value = secondRating,
+                            onValueChange = { secondRating = it },
+                            valueRange = 1f..10f,
+                            steps = 8
+                        )
+                    }
+                }
+            }
+
+            TextButton(
                 onClick = { showVitals = !showVitals },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -244,7 +318,9 @@ fun SymptomLogScreen(
                         systolicBp = systolicText.trim().toIntOrNull(),
                         diastolicBp = diastolicText.trim().toIntOrNull(),
                         medicationTaken = medicationTaken,
-                        surveyNote = surveyNote.trim().ifBlank { null }
+                        surveyNote = surveyNote.trim().ifBlank { null },
+                        secondType = if (showSecondSymptom) secondType.ifBlank { null } else null,
+                        secondRating = if (showSecondSymptom) secondRating.toInt() else null
                     )
                 },
                 enabled = saveState !is SaveState.Saving,

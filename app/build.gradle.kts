@@ -28,6 +28,9 @@ android {
         buildConfigField("String", "MPESA_CONSUMER_SECRET", "\"${localProperties.getProperty("MPESA_CONSUMER_SECRET", "")}\"")
         buildConfigField("String", "MPESA_PASSKEY", "\"${localProperties.getProperty("MPESA_PASSKEY", "")}\"")
         buildConfigField("String", "MPESA_SHORTCODE", "\"${localProperties.getProperty("MPESA_SHORTCODE", "174379")}\"")
+
+        buildConfigField("String", "RESEND_API_KEY", "\"${localProperties.getProperty("RESEND_API_KEY", "")}\"")
+        buildConfigField("String", "RESEND_FROM_EMAIL", "\"${localProperties.getProperty("RESEND_FROM_EMAIL", "CareConnect <onboarding@resend.dev>")}\"")
     }
 
     buildTypes {

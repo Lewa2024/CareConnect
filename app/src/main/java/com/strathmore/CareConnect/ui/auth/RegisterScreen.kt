@@ -34,6 +34,7 @@ fun RegisterScreen(
     viewModel: AuthViewModel = viewModel(),
     onCaregiverRegistered: (Long) -> Unit,
     onNurseRegistered: (Long) -> Unit,
+    onNeedsVerification: (Long, String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     var role by remember { mutableStateOf(RegisterRole.CAREGIVER) }
@@ -89,6 +90,9 @@ fun RegisterScreen(
             viewModel.resetState()
         } else if (state is AuthState.NurseSuccess) {
             onNurseRegistered(state.nurseId)
+            viewModel.resetState()
+        } else if (state is AuthState.PendingVerification) {
+            onNeedsVerification(state.userId, state.email)
             viewModel.resetState()
         }
     }

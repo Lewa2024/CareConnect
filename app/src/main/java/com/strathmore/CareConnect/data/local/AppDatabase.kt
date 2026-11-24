@@ -56,7 +56,7 @@ import kotlinx.coroutines.launch
         PostVisitNote::class,
         Payment::class
     ],
-    version = 14,
+    version = 16,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -250,6 +250,35 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // Adds the optional vitals columns the Symptom entity already declares
+        // (weight, blood pressure, medication-taken, a short wellbeing note) and
+        // which Rules 6 and 7 of the RuleEngine read from.
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE symptoms ADD COLUMN weightKg REAL")
+                db.execSQL("ALTER TABLE symptoms ADD COLUMN systolicBp INTEGER")
+                db.execSQL("ALTER TABLE symptoms ADD COLUMN diastolicBp INTEGER")
+                db.execSQL("ALTER TABLE symptoms ADD COLUMN medicationTaken INTEGER")
+                db.execSQL("ALTER TABLE symptoms ADD COLUMN surveyNote TEXT")
+            }
+        }
+
+        // Adds email-verification support: a new account can't log in until it's
+        // verified. Existing accounts (seeded admin/demo nurses, and anyone who
+        // registered before this version) default to emailVerified = 0 (false) via
+        // the column's NOT NULL DEFAULT below, so this migration also explicitly
+        // marks the seeded admin/demo-nurse accounts as verified further down, since
+        // they bypass the real registration flow and have no code to verify.
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE users ADD COLUMN emailVerified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE users ADD COLUMN verificationCodeHash TEXT")
+                db.execSQL("ALTER TABLE users ADD COLUMN verificationCodeExpiresAt INTEGER")
+                db.execSQL("UPDATE users SET emailVerified = 1 WHERE email = 'admin@careconnect.com'")
+                db.execSQL("UPDATE users SET emailVerified = 1 WHERE email LIKE '%.demo@careconnect.com'")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing
@@ -263,7 +292,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "care_connect.db"
                 )
-                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                    .addMigrations(MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                     .fallbackToDestructiveMigration()
                     .build()
 
@@ -318,7 +347,8 @@ abstract class AppDatabase : RoomDatabase() {
                     email = "admin@careconnect.com",
                     password = passwordHash,
                     salt = salt,
-                    phoneNumber = "0700000000"
+                    phoneNumber = "0700000000",
+                    emailVerified = true
                 )
             )
         }
@@ -359,7 +389,8 @@ abstract class AppDatabase : RoomDatabase() {
                         email = demo.email,
                         password = passwordHash,
                         salt = salt,
-                        phoneNumber = "0711000000"
+                        phoneNumber = "0711000000",
+                        emailVerified = true
                     )
                 )
 

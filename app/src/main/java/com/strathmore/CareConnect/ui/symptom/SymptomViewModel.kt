@@ -46,7 +46,9 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
         systolicBp: Int?,
         diastolicBp: Int?,
         medicationTaken: Boolean?,
-        surveyNote: String?
+        surveyNote: String?,
+        secondType: String? = null,
+        secondRating: Int? = null
     ) {
         if (type.isBlank()) {
             _saveState.value = SaveState.Error("Please select a symptom type")
@@ -56,12 +58,21 @@ class SymptomViewModel(application: Application) : AndroidViewModel(application)
             _saveState.value = SaveState.Error("Severity must be between 1 and 10")
             return
         }
+        if (secondType != null && secondType == type) {
+            _saveState.value = SaveState.Error("Pick two different symptom types, or turn off the second one")
+            return
+        }
+        if (secondType != null && (secondRating == null || secondRating !in 1..10)) {
+            _saveState.value = SaveState.Error("Severity for the second symptom must be between 1 and 10")
+            return
+        }
         viewModelScope.launch {
             _saveState.value = SaveState.Saving
             try {
                 repository.logSymptom(
                     patientId, type, rating, notes,
-                    weightKg, systolicBp, diastolicBp, medicationTaken, surveyNote
+                    weightKg, systolicBp, diastolicBp, medicationTaken, surveyNote,
+                    secondType, secondRating
                 )
                 _saveState.value = SaveState.Saved
             } catch (e: Exception) {

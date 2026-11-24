@@ -35,6 +35,16 @@ interface UserDao {
     @Query("UPDATE users SET active = :active WHERE userId = :userId")
     suspend fun setActive(userId: Long, active: Boolean)
 
+    // Email verification: stores a freshly generated code's hash and expiry against
+    // the account, used both at registration and when resending a code.
+    @Query("UPDATE users SET verificationCodeHash = :codeHash, verificationCodeExpiresAt = :expiresAt WHERE userId = :userId")
+    suspend fun setVerificationCode(userId: Long, codeHash: String, expiresAt: Long)
+
+    // Marks the account verified and clears the code so it can't be reused or
+    // guessed again after the fact.
+    @Query("UPDATE users SET emailVerified = 1, verificationCodeHash = NULL, verificationCodeExpiresAt = NULL WHERE userId = :userId")
+    suspend fun markEmailVerified(userId: Long)
+
     @Query("""
         SELECT
             u.userId AS userId,

@@ -20,6 +20,21 @@ interface NotificationDao {
     @Query("SELECT * FROM notifications WHERE patientId = :patientId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getMostRecent(patientId: Long): Notification?
 
+    // Every notification tied to the most recently triggering symptom entry for this
+    // patient — i.e. every rule that fired from the same log event, not just whichever
+    // one happened to get the latest millisecond timestamp.
+    @Query("""
+        SELECT * FROM notifications
+        WHERE patientId = :patientId
+        AND triggeringSymptomId = (
+            SELECT triggeringSymptomId FROM notifications
+            WHERE patientId = :patientId
+            ORDER BY timestamp DESC LIMIT 1
+        )
+        ORDER BY ruleNumber ASC
+    """)
+    suspend fun getMostRecentBatch(patientId: Long): List<Notification>
+
     @Query("UPDATE notifications SET isRead = 1 WHERE notificationId = :notificationId")
     suspend fun markAsRead(notificationId: Long)
 
@@ -34,4 +49,11 @@ interface NotificationDao {
         ORDER BY ruleNumber ASC
     """)
     suspend fun getRuleFiringCounts(): List<RuleFiringCount>
+
+    @Query("""
+    SELECT * FROM notifications
+    WHERE ruleNumber = :ruleNumber AND triggeringSymptomId = :symptomId
+    LIMIT 1
+""")
+suspend fun getNotificationForRuleAndSymptom(ruleNumber: Int, symptomId: Long): Notification?
 }

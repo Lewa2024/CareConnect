@@ -23,6 +23,7 @@ import com.strathmore.CareConnect.ui.alerts.AlertsScreen
 import com.strathmore.CareConnect.ui.auth.ForgotPasswordScreen
 import com.strathmore.CareConnect.ui.auth.LoginScreen
 import com.strathmore.CareConnect.ui.auth.RegisterScreen
+import com.strathmore.CareConnect.ui.auth.VerifyEmailScreen
 import com.strathmore.CareConnect.ui.home.HomeScreen
 import com.strathmore.CareConnect.ui.medication.AddMedicationScreen
 import com.strathmore.CareConnect.ui.medication.MedicationListScreen
@@ -91,6 +92,9 @@ private fun CareConnectNavHost() {
                         popUpTo("login") { inclusive = true }
                     }
                 },
+                onNeedsVerification = { userId, email ->
+                    navController.navigate("verify_email/$userId/$email")
+                },
                 onNavigateToRegister = {
                     navController.navigate("register")
                 },
@@ -112,8 +116,46 @@ private fun CareConnectNavHost() {
                         popUpTo("login") { inclusive = true }
                     }
                 },
+                onNeedsVerification = { userId, email ->
+                    navController.navigate("verify_email/$userId/$email")
+                },
                 onNavigateToLogin = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = "verify_email/{userId}/{email}",
+            arguments = listOf(
+                navArgument("userId") { type = NavType.LongType },
+                navArgument("email") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getLong("userId") ?: return@composable
+            val email = backStackEntry.arguments?.getString("email") ?: return@composable
+            VerifyEmailScreen(
+                userId = userId,
+                email = email,
+                onCaregiverVerified = { caregiverId ->
+                    navController.navigate("home/$caregiverId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onAdminVerified = { adminUserId ->
+                    navController.navigate("admin_dashboard/$adminUserId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNurseVerified = { nurseId ->
+                    navController.navigate("nurse_home/$nurseId") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onBackToLogin = {
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

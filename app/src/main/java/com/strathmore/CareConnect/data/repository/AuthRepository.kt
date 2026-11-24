@@ -16,6 +16,22 @@ sealed class LoginResult {
     data class Success(val user: User) : LoginResult()
     data object InvalidCredentials : LoginResult()
     data object AccountDeactivated : LoginResult()
+    data class EmailNotVerified(val userId: Long, val email: String) : LoginResult()
+}
+
+/** Result of registerCaregiver()/registerNurse(): the account is created and a
+ *  verification code has been (attempted to be) sent — the caller still needs to
+ *  verify before the account can log in. */
+data class RegistrationResult(
+    val userId: Long,
+    val email: String,
+    val firstName: String
+)
+
+sealed class VerifyEmailResult {
+    data class Success(val user: User) : VerifyEmailResult()
+    data object InvalidOrExpiredCode : VerifyEmailResult()
+    data object AccountNotFound : VerifyEmailResult()
 }
 
 class AuthRepository(
@@ -23,9 +39,14 @@ class AuthRepository(
     private val roleDao: RoleDao,
     private val caregiverDao: CaregiverDao,
     private val nurseDao: NurseDao,
-    private val locationDao: LocationDao
+    private val locationDao: LocationDao,
+    private val emailSender: EmailVerificationSender
 ) {
-    /** Registers a new Caregiver account. Returns the new userId, or throws with a message on failure. */
+    companion object {
+        private const val VERIFICATION_CODE_VALIDITY_MILLIS = 15L * 60 * 1000 // 15 minutes
+    }
+
+    /** Registers a new Caregiver account, then generates and emails a verification code. */
     suspend fun registerCaregiver(
         firstName: String,
         lastName: String,
@@ -33,7 +54,7 @@ class AuthRepository(
         password: String,
         phoneNumber: String,
         relationship: String
-    ): Long {
+    ): RegistrationResult {
         val existing = userDao.getByEmail(email.trim().lowercase())
         if (existing != null) {
             throw IllegalStateException("An account with this email already exists")
@@ -56,10 +77,12 @@ class AuthRepository(
 
         caregiverDao.insert(Caregiver(userId = userId, relationship = relationship.trim()))
 
-        return userId
+        sendVerificationCodeFor(userId, user.firstName, user.email, salt)
+
+        return RegistrationResult(userId, user.email, user.firstName)
     }
 
-    /** Registers a new Nurse account with a location. Returns the new nurseId. */
+    /** Registers a new Nurse account with a location, then generates and emails a verification code. */
     suspend fun registerNurse(
         firstName: String,
         lastName: String,
@@ -70,7 +93,7 @@ class AuthRepository(
         city: String,
         latitude: Double,
         longitude: Double
-    ): Long {
+    ): RegistrationResult {
         val existing = userDao.getByEmail(email.trim().lowercase())
         if (existing != null) {
             throw IllegalStateException("An account with this email already exists")
@@ -107,20 +130,59 @@ class AuthRepository(
             )
         )
 
-        return nurseId
+        sendVerificationCodeFor(userId, user.firstName, user.email, salt)
+
+        return RegistrationResult(userId, user.email, user.firstName)
     }
 
     suspend fun getNurseId(userId: Long): Long? =
         nurseDao.getByUserId(userId)?.nurseId
 
-    /** Verifies credentials and account status. */
+    /** Verifies credentials and account status, including whether the email is verified yet. */
     suspend fun login(email: String, password: String): LoginResult {
         val user = userDao.getByEmail(email.trim().lowercase()) ?: return LoginResult.InvalidCredentials
         val attemptedHash = hash(password, user.salt)
         if (attemptedHash != user.password) return LoginResult.InvalidCredentials
         if (!user.active) return LoginResult.AccountDeactivated
+        if (!user.emailVerified) return LoginResult.EmailNotVerified(user.userId, user.email)
         return LoginResult.Success(user)
     }
+
+    /** Checks a submitted verification code against the stored hash and expiry. */
+    suspend fun verifyEmail(userId: Long, code: String): VerifyEmailResult {
+        val user = userDao.getById(userId) ?: return VerifyEmailResult.AccountNotFound
+
+        val expectedHash = user.verificationCodeHash
+        val expiresAt = user.verificationCodeExpiresAt
+        val isValid = expectedHash != null &&
+            expiresAt != null &&
+            System.currentTimeMillis() <= expiresAt &&
+            hash(code.trim(), user.salt) == expectedHash
+
+        if (!isValid) return VerifyEmailResult.InvalidOrExpiredCode
+
+        userDao.markEmailVerified(userId)
+        return VerifyEmailResult.Success(
+            user.copy(emailVerified = true, verificationCodeHash = null, verificationCodeExpiresAt = null)
+        )
+    }
+
+    /** Generates a fresh code and re-sends it, e.g. if the first email didn't arrive or expired. */
+    suspend fun resendVerificationCode(userId: Long): Result<Unit> {
+        val user = userDao.getById(userId)
+            ?: return Result.failure(IllegalStateException("Account not found"))
+        return sendVerificationCodeFor(userId, user.firstName, user.email, user.salt)
+    }
+
+    private suspend fun sendVerificationCodeFor(userId: Long, firstName: String, email: String, salt: String): Result<Unit> {
+        val code = generateVerificationCode()
+        val expiresAt = System.currentTimeMillis() + VERIFICATION_CODE_VALIDITY_MILLIS
+        userDao.setVerificationCode(userId, hash(code, salt), expiresAt)
+        return emailSender.sendVerificationCode(email, firstName, code)
+    }
+
+    private fun generateVerificationCode(): String =
+        (100000..999999).random().toString()
 
     suspend fun getCaregiverId(userId: Long): Long? =
         caregiverDao.getByUserId(userId)?.caregiverId
