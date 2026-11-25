@@ -279,6 +279,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+
         fun getInstance(context: Context): AppDatabase {
             val existing = INSTANCE
             if (existing != null) return existing

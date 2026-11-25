@@ -62,4 +62,8 @@ interface UserDao {
         ORDER BY u.firstName ASC
     """)
     fun getCaregiverDirectory(): Flow<List<CaregiverDirectoryEntry>>
+
+    // Clears a used reset code so it can't be replayed.
+    @Query("UPDATE users SET verificationCodeHash = NULL, verificationCodeExpiresAt = NULL WHERE userId = :userId")
+    suspend fun clearVerificationCode(userId: Long)
 }

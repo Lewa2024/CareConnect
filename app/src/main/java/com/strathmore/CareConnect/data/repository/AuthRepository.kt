@@ -33,6 +33,11 @@ sealed class VerifyEmailResult {
     data object InvalidOrExpiredCode : VerifyEmailResult()
     data object AccountNotFound : VerifyEmailResult()
 }
+sealed class ConfirmResetResult {
+    data object Success : ConfirmResetResult()
+    data object InvalidOrExpiredCode : ConfirmResetResult()
+    data object AccountNotFound : ConfirmResetResult()
+}
 
 class AuthRepository(
     private val userDao: UserDao,
@@ -144,7 +149,6 @@ class AuthRepository(
         val attemptedHash = hash(password, user.salt)
         if (attemptedHash != user.password) return LoginResult.InvalidCredentials
         if (!user.active) return LoginResult.AccountDeactivated
-        if (!user.emailVerified) return LoginResult.EmailNotVerified(user.userId, user.email)
         return LoginResult.Success(user)
     }
 
@@ -174,11 +178,17 @@ class AuthRepository(
         return sendVerificationCodeFor(userId, user.firstName, user.email, user.salt)
     }
 
-    private suspend fun sendVerificationCodeFor(userId: Long, firstName: String, email: String, salt: String): Result<Unit> {
+        private suspend fun sendVerificationCodeFor(
+        userId: Long,
+        firstName: String,
+        email: String,
+        salt: String,
+        isPasswordReset: Boolean = false
+    ): Result<Unit> {
         val code = generateVerificationCode()
         val expiresAt = System.currentTimeMillis() + VERIFICATION_CODE_VALIDITY_MILLIS
         userDao.setVerificationCode(userId, hash(code, salt), expiresAt)
-        return emailSender.sendVerificationCode(email, firstName, code)
+        return emailSender.sendVerificationCode(email, firstName, code, isPasswordReset)
     }
 
     private fun generateVerificationCode(): String =
@@ -194,7 +204,37 @@ class AuthRepository(
         val caregiver = caregiverDao.getById(caregiverId) ?: return null
         return userDao.getById(caregiver.userId)
     }
+    /** Step 1 of password reset: emails a code to the account with this email. */
+    suspend fun requestPasswordReset(email: String): Result<Unit> {
+        val user = userDao.getByEmail(email.trim().lowercase())
+            ?: return Result.failure(IllegalStateException("No account found with this email"))
+        return sendVerificationCodeFor(
+            user.userId, user.firstName, user.email, user.salt, isPasswordReset = true
+        )
+    }
 
+    /** Step 2 of password reset: checks the code, then sets the new password. */
+    suspend fun confirmPasswordReset(email: String, code: String, newPassword: String): ConfirmResetResult {
+        val user = userDao.getByEmail(email.trim().lowercase())
+            ?: return ConfirmResetResult.AccountNotFound
+
+        val expectedHash = user.verificationCodeHash
+        val expiresAt = user.verificationCodeExpiresAt
+        val isValid = expectedHash != null &&
+            expiresAt != null &&
+            System.currentTimeMillis() <= expiresAt &&
+            hash(code.trim(), user.salt) == expectedHash
+
+        if (!isValid) return ConfirmResetResult.InvalidOrExpiredCode
+
+        val newSalt = generateSalt()
+        val rowsUpdated = userDao.updatePassword(user.email, hash(newPassword, newSalt), newSalt)
+        if (rowsUpdated == 0) throw IllegalStateException("Failed to update password")
+
+        userDao.clearVerificationCode(user.userId)
+        return ConfirmResetResult.Success
+    }
+    
     /** Resets the password for the given email. Throws if no account exists with that email. */
     suspend fun resetPassword(email: String, newPassword: String) {
         val user = userDao.getByEmail(email.trim().lowercase())

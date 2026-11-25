@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.strathmore.CareConnect.CareConnectApp
 import com.strathmore.CareConnect.data.local.entities.User
 import com.strathmore.CareConnect.data.repository.AuthRepository
+import com.strathmore.CareConnect.data.repository.ConfirmResetResult
+import com.strathmore.CareConnect.data.repository.EmailSendException
 import com.strathmore.CareConnect.data.repository.EmailVerificationSender
 import com.strathmore.CareConnect.data.repository.LoginResult
 import com.strathmore.CareConnect.data.repository.VerifyEmailResult
@@ -215,6 +217,55 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Stage 1 of forgot password: email a reset code to this address. */
+    fun requestPasswordReset(email: String) {
+        if (email.isBlank()) {
+            _resetPasswordState.value = ResetPasswordState.Error("Please enter your email")
+            return
+        }
+        viewModelScope.launch {
+            _resetPasswordState.value = ResetPasswordState.Loading
+            val result = repository.requestPasswordReset(email)
+            _resetPasswordState.value = result.fold(
+                onSuccess = { ResetPasswordState.CodeSent },
+                onFailure = { ResetPasswordState.Error(describeResetEmailFailure(it)) }
+            )
+        }
+    }
+
+    /** Stage 2 of forgot password: check the code, then set the new password. */
+    fun confirmPasswordReset(email: String, code: String, newPassword: String) {
+        if (code.isBlank() || newPassword.isBlank()) {
+            _resetPasswordState.value = ResetPasswordState.Error("Please enter the code and a new password")
+            return
+        }
+        if (newPassword.length < 6) {
+            _resetPasswordState.value = ResetPasswordState.Error("Password must be at least 6 characters")
+            return
+        }
+        viewModelScope.launch {
+            _resetPasswordState.value = ResetPasswordState.Loading
+            _resetPasswordState.value = try {
+                when (repository.confirmPasswordReset(email, code, newPassword)) {
+                    ConfirmResetResult.Success -> ResetPasswordState.Success
+                    ConfirmResetResult.InvalidOrExpiredCode ->
+                        ResetPasswordState.Error("That code is incorrect or has expired. Go back and request a new one.")
+                    ConfirmResetResult.AccountNotFound ->
+                        ResetPasswordState.Error("No account found with this email")
+                }
+            } catch (e: Exception) {
+                ResetPasswordState.Error(e.message ?: "Failed to reset password")
+            }
+        }
+    }
+
+    private fun describeResetEmailFailure(e: Throwable): String = when (e) {
+        is EmailSendException -> "Couldn't send the email (error ${e.httpCode}). Check Logcat, tag EmailSender."
+        is java.io.IOException -> "No internet connection. Check your network and try again."
+        is IllegalStateException -> e.message ?: "Couldn't send the email."
+        else -> "Couldn't send the email. Please try again."
+    }
+
     fun resetPasswordStateReset() {
         _resetPasswordState.value = ResetPasswordState.Idle
     }
@@ -237,6 +288,7 @@ sealed class AuthState {
 sealed class ResetPasswordState {
     data object Idle : ResetPasswordState()
     data object Loading : ResetPasswordState()
+    data object CodeSent : ResetPasswordState()
     data object Success : ResetPasswordState()
     data class Error(val message: String) : ResetPasswordState()
 }

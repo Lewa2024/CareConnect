@@ -1,5 +1,6 @@
 package com.strathmore.CareConnect.data.remote
 
+import com.strathmore.CareConnect.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -10,7 +11,10 @@ object ResendEmailClient {
 
     val api: EmailApiService by lazy {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            // BODY would print the Authorization header (API key) and the code in Logcat.
+            redactHeader("Authorization")
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                    else HttpLoggingInterceptor.Level.NONE
         }
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
