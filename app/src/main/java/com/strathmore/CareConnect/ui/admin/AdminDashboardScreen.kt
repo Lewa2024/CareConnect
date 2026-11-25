@@ -19,6 +19,7 @@ fun AdminDashboardScreen(
     onViewDeletedSymptoms: () -> Unit,
     onViewSystemOverview: () -> Unit,
     onViewCaregivers: () -> Unit,
+    onViewNurses: () -> Unit,
     onViewProfile: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -66,6 +67,13 @@ fun AdminDashboardScreen(
                 title = "Caregivers",
                 description = "View registered caregiver accounts and deactivate or reactivate access.",
                 onClick = onViewCaregivers
+            )
+
+             AdminActionCard(
+                icon = Icons.Default.LocalHospital,
+                title = "Nurses",
+                description = "Verify nurse accounts, and activate or deactivate their access.",
+                onClick = onViewNurses
             )
 
             AdminActionCard(

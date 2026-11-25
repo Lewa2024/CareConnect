@@ -11,6 +11,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
+import androidx.compose.ui.graphics.Color
+import com.strathmore.CareConnect.ui.components.blackTextFieldColors
 
 @Composable
 fun VerifyEmailScreen(
@@ -70,13 +72,14 @@ fun VerifyEmailScreen(
         Text(
             "We've sent a 6-digit code to $email. Enter it below to finish setting up your account.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Color.Black,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = code,
             onValueChange = { if (it.length <= 6) code = it.filter(Char::isDigit) },
             label = { Text("Verification code") },
@@ -104,7 +107,7 @@ fun VerifyEmailScreen(
             onClick = { viewModel.resendVerificationCode(userId) },
             enabled = verificationState !is VerificationState.Sending
         ) {
-            Text("Resend code")
+            Text("Resend code", color = Color.Black)
         }
 
         when (val state = verificationState) {
@@ -134,7 +137,7 @@ fun VerifyEmailScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(onClick = onBackToLogin) {
-            Text("Back to login")
+            Text("Back to login", color = Color.Black)
         }
     }
 }

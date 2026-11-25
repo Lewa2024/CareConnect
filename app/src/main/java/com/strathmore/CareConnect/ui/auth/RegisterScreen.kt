@@ -25,6 +25,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.location.DeviceLocation
 import com.strathmore.CareConnect.location.LocationHelper
 import com.strathmore.CareConnect.ui.components.AppLogo
+import androidx.compose.ui.graphics.Color
+import com.strathmore.CareConnect.ui.components.blackTextFieldColors
 import kotlinx.coroutines.launch
 
 private enum class RegisterRole { CAREGIVER, NURSE }
@@ -121,12 +123,20 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             FilterChip(
+                colors = FilterChipDefaults.filterChipColors(
+                    labelColor = Color.Black,
+                    selectedLabelColor = Color.White
+                ),
                 selected = role == RegisterRole.CAREGIVER,
                 onClick = { role = RegisterRole.CAREGIVER },
                 label = { Text("Caregiver") },
                 modifier = Modifier.weight(1f)
             )
             FilterChip(
+                colors = FilterChipDefaults.filterChipColors(
+                    labelColor = Color.Black,
+                    selectedLabelColor = Color.White
+                ),
                 selected = role == RegisterRole.NURSE,
                 onClick = { role = RegisterRole.NURSE },
                 label = { Text("Nurse") },
@@ -137,6 +147,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = firstName, onValueChange = { firstName = it },
             label = { Text("First name") }, singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -144,6 +155,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = lastName, onValueChange = { lastName = it },
             label = { Text("Last name") }, singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -151,6 +163,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = email, onValueChange = { email = it },
             label = { Text("Email") }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -159,6 +172,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = password, onValueChange = { password = it },
             label = { Text("Password") }, singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -168,6 +182,7 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = phoneNumber, onValueChange = { phoneNumber = it },
             label = { Text("Phone number") }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -177,12 +192,14 @@ fun RegisterScreen(
 
         if (role == RegisterRole.CAREGIVER) {
             OutlinedTextField(
+            colors = blackTextFieldColors(),
                 value = relationship, onValueChange = { relationship = it },
                 label = { Text("Relationship to patient (e.g. Daughter)") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
         } else {
             OutlinedTextField(
+            colors = blackTextFieldColors(),
                 value = qualification, onValueChange = { qualification = it },
                 label = { Text("Qualification (e.g. Registered Nurse)") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -287,10 +304,10 @@ fun RegisterScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Already have an account?",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.Black
             )
             TextButton(onClick = onNavigateToLogin) {
-                Text("Log in", fontWeight = FontWeight.Bold)
+                Text("Log in", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
     }

@@ -41,6 +41,7 @@ import com.strathmore.CareConnect.ui.symptom.EditSymptomScreen
 import com.strathmore.CareConnect.ui.symptom.PainGuideScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomHistoryScreen
 import com.strathmore.CareConnect.ui.symptom.SymptomLogScreen
+import com.strathmore.CareConnect.ui.admin.NurseDirectoryScreen
 import com.strathmore.CareConnect.ui.theme.CareConnectTheme
 
 class MainActivity : ComponentActivity() {
@@ -478,6 +479,7 @@ private fun CareConnectNavHost() {
                 onViewDeletedSymptoms = { navController.navigate("deleted_symptoms") },
                 onViewSystemOverview = { navController.navigate("system_overview") },
                 onViewCaregivers = { navController.navigate("caregiver_directory") },
+                onViewNurses = { navController.navigate("nurse_directory") },
                 onViewProfile = { navController.navigate("admin_profile/$userId") },
                 onLogout = {
                     navController.navigate("login") {
@@ -517,6 +519,9 @@ private fun CareConnectNavHost() {
 
         composable("caregiver_directory") {
             CaregiverDirectoryScreen(onBack = { navController.popBackStack() })
+        }
+        composable("nurse_directory") {
+            NurseDirectoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

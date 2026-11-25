@@ -13,6 +13,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.strathmore.CareConnect.ui.components.AppLogo
+import androidx.compose.ui.graphics.Color
+import com.strathmore.CareConnect.ui.components.blackTextFieldColors
 
 @Composable
 fun LoginScreen(
@@ -63,6 +65,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
@@ -74,6 +77,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
+            colors = blackTextFieldColors(),
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
@@ -99,7 +103,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         TextButton(onClick = onNavigateToForgotPassword) {
-            Text("Forgot password?")
+            Text("Forgot password?", color = Color.Black)
         }
 
         if (authState is AuthState.Error) {
@@ -120,10 +124,10 @@ fun LoginScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Don't have an account?",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.Black
             )
             TextButton(onClick = onNavigateToRegister) {
-                Text("Register", fontWeight = FontWeight.Bold)
+                Text("Register", fontWeight = FontWeight.Bold, color = Color.Black)
             }
         }
     }

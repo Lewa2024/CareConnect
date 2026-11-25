@@ -111,6 +111,23 @@ fun CareTextField(
     )
 }
 
+/** Black text and labels on a white field, readable in both light and dark mode. */
+@Composable
+fun blackTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = Color.Black,
+    unfocusedTextColor = Color.Black,
+    errorTextColor = Color.Black,
+    focusedLabelColor = Color.Black,
+    unfocusedLabelColor = Color.Black,
+    errorLabelColor = MaterialTheme.colorScheme.error,
+    cursorColor = Color.Black,
+    focusedContainerColor = Color.White,
+    unfocusedContainerColor = Color.White,
+    errorContainerColor = Color.White,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = Color.Gray
+)
+
 /** Login / Register layout: navy header with title, then a rounded sheet holding the form. */
 @Composable
 fun AuthLayout(

@@ -21,6 +21,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     private val patientDao: PatientDao = db.patientDao()
     private val roleDao: RoleDao = db.roleDao()
     private val notificationDao: NotificationDao = db.notificationDao()
+    private val nurseDao: NurseDao = db.nurseDao()
 
     private val _thresholds = MutableStateFlow<List<RuleThreshold>>(emptyList())
     val thresholds: StateFlow<List<RuleThreshold>> = _thresholds.asStateFlow()
@@ -50,6 +51,9 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _ruleFiringCounts = MutableStateFlow<List<RuleFiringCount>>(emptyList())
     val ruleFiringCounts: StateFlow<List<RuleFiringCount>> = _ruleFiringCounts.asStateFlow()
+
+    private val _nurses = MutableStateFlow<List<NurseDirectoryEntry>>(emptyList())
+    val nurses: StateFlow<List<NurseDirectoryEntry>> = _nurses.asStateFlow()
 
     fun loadThresholds() {
         viewModelScope.launch {
@@ -148,6 +152,28 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setCaregiverActive(userId: Long, active: Boolean) {
+        viewModelScope.launch {
+            userDao.setActive(userId, active)
+        }
+    }
+
+        fun loadNurseDirectory() {
+        viewModelScope.launch {
+            nurseDao.getNurseDirectory().collect { list ->
+                _nurses.value = list
+            }
+        }
+    }
+
+    fun setNurseVerified(nurseId: Long, verified: Boolean) {
+        viewModelScope.launch {
+            nurseDao.setVerified(nurseId, verified)
+        }
+    }
+
+    // Activating or deactivating works on the nurse's user account, the same way
+    // it does for caregivers, so a deactivated nurse can no longer log in.
+    fun setNurseActive(userId: Long, active: Boolean) {
         viewModelScope.launch {
             userDao.setActive(userId, active)
         }
